@@ -84,7 +84,7 @@ fun RepoDetailScreen(
                         }
                     }
                 }
-                HorizontalDivider()
+                Divider()
             }
 
             val tabs = listOf("Commits", "Issues", "Pull Requests")

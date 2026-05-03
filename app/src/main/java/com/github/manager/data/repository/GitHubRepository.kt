@@ -1,6 +1,5 @@
 package com.github.manager.data.repository
 
-import com.github.manager.data.api.CreateIssueRequest
 import com.github.manager.data.api.GitHubApiService
 import com.github.manager.data.model.*
 import retrofit2.Response
