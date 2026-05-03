@@ -1,6 +1,5 @@
 package com.github.manager.ui.screens.repo
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,7 +34,7 @@ fun RepoListScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        uiState.user?.avatar_url?.let { url ->
+                        uiState.user?.avatarUrl?.let { url ->
                             AsyncImage(
                                 model = url,
                                 contentDescription = "Avatar",
@@ -156,7 +155,7 @@ fun RepoItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = repo.full_name,
+                    text = repo.fullName,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
@@ -201,19 +200,19 @@ fun RepoItem(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("${repo.stargazers_count}", style = MaterialTheme.typography.labelSmall)
+                    Text("${repo.stargazersCount}", style = MaterialTheme.typography.labelSmall)
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.CallSplit, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("${repo.forks_count}", style = MaterialTheme.typography.labelSmall)
+                    Text("${repo.forksCount}", style = MaterialTheme.typography.labelSmall)
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("${repo.open_issues_count}", style = MaterialTheme.typography.labelSmall)
+                    Text("${repo.openIssuesCount}", style = MaterialTheme.typography.labelSmall)
                 }
             }
 

@@ -58,7 +58,7 @@ fun RepoDetailScreen(
         Column(modifier = Modifier.padding(padding)) {
             uiState.repo?.let { repoDetail ->
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(repoDetail.full_name, style = MaterialTheme.typography.titleLarge)
+                    Text(repoDetail.fullName, style = MaterialTheme.typography.titleLarge)
                     repoDetail.description?.let {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -75,12 +75,12 @@ fun RepoDetailScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("${repoDetail.stargazers_count}", style = MaterialTheme.typography.bodySmall)
+                            Text("${repoDetail.stargazersCount}", style = MaterialTheme.typography.bodySmall)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.CallSplit, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("${repoDetail.forks_count}", style = MaterialTheme.typography.bodySmall)
+                            Text("${repoDetail.forksCount}", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -269,11 +269,11 @@ fun PullRequestsList(prs: List<PullRequest>) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         val icon = when (pr.state) {
                             "open" -> Icons.Default.OpenInNew
-                            "closed" -> if (pr.merged_at != null) Icons.Default.CallMerge else Icons.Default.Close
+                            "closed" -> if (pr.mergedAt != null) Icons.Default.CallMerge else Icons.Default.Close
                             else -> Icons.Default.OpenInNew
                         }
                         val color = when {
-                            pr.merged_at != null -> MaterialTheme.colorScheme.primary
+                            pr.mergedAt != null -> MaterialTheme.colorScheme.primary
                             pr.state == "open" -> MaterialTheme.colorScheme.primary
                             else -> MaterialTheme.colorScheme.error
                         }

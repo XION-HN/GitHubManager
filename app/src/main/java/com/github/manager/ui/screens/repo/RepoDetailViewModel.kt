@@ -66,7 +66,7 @@ class RepoDetailViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true)
             gitHubRepository.getIssues(owner, repoName)
                 .onSuccess { issues ->
-                    val realIssues = issues.filter { it.pull_request == null }
+                    val realIssues = issues.filter { it.pullRequest == null }
                     _uiState.value = _uiState.value.copy(issues = realIssues, isLoading = false)
                 }
                 .onFailure { e ->

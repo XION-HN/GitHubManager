@@ -1,7 +1,6 @@
 package com.github.manager.data.api
 
 import com.github.manager.data.model.*
-import com.squareup.moshi.JsonClass
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -118,10 +117,3 @@ interface GitHubApiService {
         @Path("number") number: Int
     ): PullRequest
 }
-
-@JsonClass(generateAdapter = true)
-data class CreateIssueRequest(
-    val title: String,
-    val body: String? = null,
-    val labels: List<String>? = null
-)
