@@ -58,7 +58,7 @@ fun RepoListScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                         }
                         Column {
-                            Text(uiState.user?.login ?: bt(Strings.appName))
+                            Text(uiState.user?.login ?: getText(Strings.appName))
                             if (languageModeState.value == LanguageMode.BILINGUAL && uiState.user != null) {
                                 Text(
                                     "My Repositories",
@@ -71,19 +71,19 @@ fun RepoListScreen(
                 },
                 actions = {
                     IconButton(onClick = { showCreateDialog = true }) {
-                        Icon(Icons.Default.Add, contentDescription = bt(Strings.createRepo))
+                        Icon(Icons.Default.Add, contentDescription = getText(Strings.createRepo))
                     }
                     IconButton(onClick = onAccountClick) {
                         uiState.user?.avatarUrl?.let { url ->
                             AsyncImage(
                                 model = url,
-                                contentDescription = bt(Strings.account),
+                                contentDescription = getText(Strings.account),
                                 modifier = Modifier
                                     .size(28.dp)
                                     .clip(CircleShape)
                             )
                         } ?: run {
-                            Icon(Icons.Default.AccountCircle, contentDescription = bt(Strings.account))
+                            Icon(Icons.Default.AccountCircle, contentDescription = getText(Strings.account))
                         }
                     }
                 }
@@ -113,7 +113,7 @@ fun RepoListScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(uiState.error!!, color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = viewModel::loadRepos) { Text(bt(Strings.retry)) }
+                        Button(onClick = viewModel::loadRepos) { Text(getText(Strings.retry)) }
                     }
                 }
             } else {
@@ -192,7 +192,7 @@ fun RepoItem(
                     Spacer(modifier = Modifier.width(8.dp))
                     AssistChip(
                         onClick = {},
-                        label = { Text(bt(Strings.privateRepo), style = MaterialTheme.typography.labelSmall) },
+                        label = { Text(getText(Strings.privateRepo), style = MaterialTheme.typography.labelSmall) },
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(14.dp)) }
                     )
                 }
@@ -229,7 +229,7 @@ fun RepoItem(
                 ) {
                     Icon(
                         Icons.Filled.Star,
-                        contentDescription = bt(Strings.star),
+                        contentDescription = getText(Strings.star),
                         modifier = Modifier.size(14.dp),
                         tint = if (isStarred) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurface
                     )
@@ -282,19 +282,19 @@ fun CreateRepoDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text(bt(Strings.repositoryName)) },
+                    label = { Text(getText(Strings.repositoryName)) },
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text(bt(Strings.descriptionOptional)) },
+                    label = { Text(getText(Strings.descriptionOptional)) },
                     maxLines = 3
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(checked = isPrivate, onCheckedChange = { isPrivate = it })
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(bt(Strings.privateRepo))
+                    Text(getText(Strings.privateRepo))
                 }
             }
         },
@@ -302,10 +302,10 @@ fun CreateRepoDialog(
             TextButton(
                 onClick = { onCreate(name, description.ifBlank { null }, isPrivate) },
                 enabled = name.isNotBlank()
-            ) { Text(bt(Strings.create)) }
+            ) { Text(getText(Strings.create)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(bt(Strings.cancel)) }
+            TextButton(onClick = onDismiss) { Text(getText(Strings.cancel)) }
         }
     )
 }

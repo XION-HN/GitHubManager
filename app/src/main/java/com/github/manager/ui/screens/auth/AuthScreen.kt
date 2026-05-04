@@ -62,7 +62,7 @@ fun AuthScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = bt(Strings.appName),
+                text = getText(Strings.appName),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -109,7 +109,7 @@ fun AuthScreen(
             OutlinedTextField(
                 value = uiState.token,
                 onValueChange = viewModel::onTokenChanged,
-                label = { Text(bt(Strings.personalAccessToken)) },
+                label = { Text(getText(Strings.personalAccessToken)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
@@ -117,7 +117,7 @@ fun AuthScreen(
                     IconButton(onClick = { showToken = !showToken }) {
                         Icon(
                             imageVector = if (showToken) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = bt(if (showToken) Strings.hideToken else Strings.showToken)
+                            contentDescription = getText(if (showToken) Strings.hideToken else Strings.showToken)
                         )
                     }
                 },
@@ -161,7 +161,7 @@ fun AuthScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text(bt(Strings.signIn))
+                Text(getText(Strings.signIn))
             }
 
             Spacer(modifier = Modifier.height(24.dp))

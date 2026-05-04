@@ -46,7 +46,7 @@ fun AccountScreen(
                 },
                 actions = {
                     IconButton(onClick = { showLanguageDialog = true }) {
-                        Icon(Icons.Default.Language, contentDescription = bt(Strings.language))
+                        Icon(Icons.Default.Language, contentDescription = getText(Strings.language))
                     }
                 }
             )
@@ -63,7 +63,7 @@ fun AccountScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(uiState.error!!, color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = viewModel::loadProfile) { Text(bt(Strings.retry)) }
+                        Button(onClick = viewModel::loadProfile) { Text(getText(Strings.retry)) }
                     }
                 }
             }
@@ -157,7 +157,7 @@ fun AccountScreen(
                         ) {
                             Icon(Icons.Default.Language, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(bt(Strings.language))
+                            Text(getText(Strings.language))
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -168,7 +168,7 @@ fun AccountScreen(
                         ) {
                             Icon(Icons.Default.SwapHoriz, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(bt(Strings.switchAccount))
+                            Text(getText(Strings.switchAccount))
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -182,7 +182,7 @@ fun AccountScreen(
                         ) {
                             Icon(Icons.Default.Logout, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(bt(Strings.logout))
+                            Text(getText(Strings.logout))
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -196,7 +196,7 @@ fun AccountScreen(
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
             title = { BilingualLabel(Strings.logout) },
-            text = { Text(bt(Strings.logoutConfirm)) },
+            text = { Text(getText(Strings.logoutConfirm)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -205,10 +205,10 @@ fun AccountScreen(
                         onLogout()
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text(bt(Strings.logout)) }
+                ) { Text(getText(Strings.logout)) }
             },
             dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) { Text(bt(Strings.cancel)) }
+                TextButton(onClick = { showLogoutDialog = false }) { Text(getText(Strings.cancel)) }
             }
         )
     }
@@ -221,7 +221,7 @@ fun AccountScreen(
                 OutlinedTextField(
                     value = newToken,
                     onValueChange = { newToken = it },
-                    label = { Text(bt(Strings.newPersonalAccessToken)) },
+                    label = { Text(getText(Strings.newPersonalAccessToken)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation()
                 )
@@ -236,13 +236,13 @@ fun AccountScreen(
                         }
                     },
                     enabled = newToken.isNotBlank()
-                ) { Text(bt(Strings.switch)) }
+                ) { Text(getText(Strings.switch)) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showSwitchTokenDialog = false
                     newToken = ""
-                }) { Text(bt(Strings.cancel)) }
+                }) { Text(getText(Strings.cancel)) }
             }
         )
     }

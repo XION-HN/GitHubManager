@@ -68,15 +68,15 @@ fun RepoDetailScreen(
                     IconButton(onClick = { viewModel.toggleStar() }) {
                         Icon(
                             imageVector = Icons.Filled.Star,
-                            contentDescription = bt(if (uiState.isStarred) Strings.unstar else Strings.star),
+                            contentDescription = getText(if (uiState.isStarred) Strings.unstar else Strings.star),
                             tint = if (uiState.isStarred) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurface
                         )
                     }
                     IconButton(onClick = { viewModel.forkRepo() }) {
-                        Icon(Icons.Default.CallSplit, contentDescription = bt(Strings.fork))
+                        Icon(Icons.Default.CallSplit, contentDescription = getText(Strings.fork))
                     }
                     IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = bt(Strings.delete), tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Default.Delete, contentDescription = getText(Strings.delete), tint = MaterialTheme.colorScheme.error)
                     }
                 }
             )
@@ -132,11 +132,11 @@ fun RepoDetailScreen(
             }
 
             val tabs = listOf(
-                bt(Strings.commits) to "Commits",
-                bt(Strings.issues) to "Issues",
-                bt(Strings.pullRequests) to "Pull Requests",
-                bt(Strings.branches) to "Branches",
-                bt(Strings.actions) to "Actions"
+                getText(Strings.commits) to "Commits",
+                getText(Strings.issues) to "Issues",
+                getText(Strings.pullRequests) to "Pull Requests",
+                getText(Strings.branches) to "Branches",
+                getText(Strings.actions) to "Actions"
             )
             ScrollableTabRow(
                 selectedTabIndex = if (uiState.currentTab > 4) 0 else uiState.currentTab,
@@ -226,7 +226,7 @@ fun RepoDetailScreen(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { BilingualLabel(Strings.deleteRepo) },
-            text = { Text(bt(Strings.deleteRepoConfirm)) },
+            text = { Text(getText(Strings.deleteRepoConfirm)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -235,10 +235,10 @@ fun RepoDetailScreen(
                         onBack()
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text(bt(Strings.delete)) }
+                ) { Text(getText(Strings.delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text(bt(Strings.cancel)) }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(getText(Strings.cancel)) }
             }
         )
     }
@@ -367,7 +367,7 @@ fun IssuesList(
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
         ) {
-            Icon(Icons.Default.Add, contentDescription = bt(Strings.createIssue))
+            Icon(Icons.Default.Add, contentDescription = getText(Strings.createIssue))
         }
     }
 }
@@ -415,7 +415,7 @@ fun PullRequestsList(prs: List<PullRequest>) {
                         if (pr.draft) {
                             SuggestionChip(
                                 onClick = {},
-                                label = { Text(bt(Strings.draft), style = MaterialTheme.typography.labelSmall) }
+                                label = { Text(getText(Strings.draft), style = MaterialTheme.typography.labelSmall) }
                             )
                         }
                     }
@@ -477,7 +477,7 @@ fun BranchesList(
                     if (branch.protected) {
                         Icon(
                             Icons.Default.Lock,
-                            contentDescription = bt(Strings.protected),
+                            contentDescription = getText(Strings.protected),
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(14.dp)
                         )
@@ -530,7 +530,7 @@ fun BranchSelectDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text(bt(Strings.cancel)) }
+            TextButton(onClick = onDismiss) { Text(getText(Strings.cancel)) }
         }
     )
 }
@@ -561,14 +561,14 @@ fun ActionsTab(
                     CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 1.dp)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        bt(Strings.monitoring),
+                        getText(Strings.monitoring),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
             IconButton(onClick = onRefresh) {
-                Icon(Icons.Default.Refresh, contentDescription = bt(Strings.refresh))
+                Icon(Icons.Default.Refresh, contentDescription = getText(Strings.refresh))
             }
         }
 
@@ -620,13 +620,13 @@ fun WorkflowRunCard(
     }
 
     val statusText = when (run.conclusion) {
-        "success" -> bt(Strings.success)
-        "failure" -> bt(Strings.failed)
-        "cancelled" -> bt(Strings.cancelled)
+        "success" -> getText(Strings.success)
+        "failure" -> getText(Strings.failed)
+        "cancelled" -> getText(Strings.cancelled)
         null -> when (run.status) {
-            "in_progress" -> bt(Strings.inProgress)
-            "queued" -> bt(Strings.queued)
-            "waiting" -> bt(Strings.waiting)
+            "in_progress" -> getText(Strings.inProgress)
+            "queued" -> getText(Strings.queued)
+            "waiting" -> getText(Strings.waiting)
             else -> run.status
         }
         else -> run.conclusion ?: ""
@@ -655,7 +655,7 @@ fun WorkflowRunCard(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        run.name.ifBlank { "${bt(Strings.runNumber)}${run.id}" },
+                        run.name.ifBlank { "${getText(Strings.runNumber)}${run.id}" },
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -665,11 +665,11 @@ fun WorkflowRunCard(
                 Row {
                     if (run.status == "in_progress" || run.status == "queued" || run.status == "waiting") {
                         IconButton(onClick = onCancel, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Stop, contentDescription = bt(Strings.cancelRun), modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Stop, contentDescription = getText(Strings.cancelRun), modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error)
                         }
                     } else {
                         IconButton(onClick = onReRun, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Replay, contentDescription = bt(Strings.reRun), modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Replay, contentDescription = getText(Strings.reRun), modifier = Modifier.size(14.dp))
                         }
                     }
                 }
@@ -726,13 +726,13 @@ fun CreateIssueDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text(bt(Strings.title)) },
+                    label = { Text(getText(Strings.title)) },
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = body,
                     onValueChange = { body = it },
-                    label = { Text(bt(Strings.bodyOptional)) },
+                    label = { Text(getText(Strings.bodyOptional)) },
                     maxLines = 5
                 )
             }
@@ -741,10 +741,10 @@ fun CreateIssueDialog(
             TextButton(
                 onClick = { onCreate(title, body.ifBlank { null }) },
                 enabled = title.isNotBlank()
-            ) { Text(bt(Strings.create)) }
+            ) { Text(getText(Strings.create)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(bt(Strings.cancel)) }
+            TextButton(onClick = onDismiss) { Text(getText(Strings.cancel)) }
         }
     )
 }
