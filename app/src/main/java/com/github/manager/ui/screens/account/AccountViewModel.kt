@@ -5,6 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.github.manager.data.local.TokenManager
 import com.github.manager.data.model.User
 import com.github.manager.data.repository.GitHubRepository
+import com.github.manager.ui.i18n.LanguageMode
+import com.github.manager.ui.i18n.ThemeMode
+import com.github.manager.ui.i18n.languageModeState
+import com.github.manager.ui.i18n.themeModeState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +33,7 @@ class AccountViewModel @Inject constructor(
 
     init {
         loadProfile()
+        loadPreferences()
     }
 
     fun loadProfile() {
@@ -55,6 +60,37 @@ class AccountViewModel @Inject constructor(
             tokenManager.clearAll()
             tokenManager.saveToken(newToken)
             loadProfile()
+        }
+    }
+
+    fun saveLanguageMode(mode: String) {
+        viewModelScope.launch {
+            tokenManager.saveLanguageMode(mode)
+        }
+    }
+
+    fun saveThemeMode(mode: String) {
+        viewModelScope.launch {
+            tokenManager.saveThemeMode(mode)
+        }
+    }
+
+    private fun loadPreferences() {
+        viewModelScope.launch {
+            tokenManager.loadLanguageMode()?.let { mode ->
+                languageModeState.value = when (mode) {
+                    "CHINESE" -> LanguageMode.CHINESE
+                    "ENGLISH" -> LanguageMode.ENGLISH
+                    else -> LanguageMode.BILINGUAL
+                }
+            }
+            tokenManager.loadThemeMode()?.let { mode ->
+                themeModeState.value = when (mode) {
+                    "LIGHT" -> ThemeMode.LIGHT
+                    "DARK" -> ThemeMode.DARK
+                    else -> ThemeMode.SYSTEM
+                }
+            }
         }
     }
 }

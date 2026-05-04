@@ -81,28 +81,34 @@ class RepoListViewModel @Inject constructor(
     }
 
     fun starRepo(owner: String, repo: String) {
+        val fullName = "$owner/$repo"
+        _uiState.value = _uiState.value.copy(
+            starredRepos = _uiState.value.starredRepos + fullName
+        )
         viewModelScope.launch {
             gitHubRepository.starRepository(owner, repo)
-                .onSuccess {
-                    val fullName = "$owner/$repo"
+                .onFailure {
                     _uiState.value = _uiState.value.copy(
-                        starredRepos = _uiState.value.starredRepos + fullName
+                        starredRepos = _uiState.value.starredRepos - fullName
                     )
-                    if (_uiState.value.isStarredTab) loadRepos()
                 }
+            if (_uiState.value.isStarredTab) loadRepos()
         }
     }
 
     fun unstarRepo(owner: String, repo: String) {
+        val fullName = "$owner/$repo"
+        _uiState.value = _uiState.value.copy(
+            starredRepos = _uiState.value.starredRepos - fullName
+        )
         viewModelScope.launch {
             gitHubRepository.unstarRepository(owner, repo)
-                .onSuccess {
-                    val fullName = "$owner/$repo"
+                .onFailure {
                     _uiState.value = _uiState.value.copy(
-                        starredRepos = _uiState.value.starredRepos - fullName
+                        starredRepos = _uiState.value.starredRepos + fullName
                     )
-                    if (_uiState.value.isStarredTab) loadRepos()
                 }
+            if (_uiState.value.isStarredTab) loadRepos()
         }
     }
 

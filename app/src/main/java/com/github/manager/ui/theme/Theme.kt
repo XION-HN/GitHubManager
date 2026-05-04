@@ -10,6 +10,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.github.manager.ui.i18n.ThemeMode
+import com.github.manager.ui.i18n.themeModeState
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -25,10 +27,16 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun GitHubManagerTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
+    val systemDarkTheme = isSystemInDarkTheme()
+    val darkTheme = when (themeModeState.value) {
+        ThemeMode.DARK -> true
+        ThemeMode.LIGHT -> false
+        ThemeMode.SYSTEM -> systemDarkTheme
+    }
+
+    val dynamicColor = true
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current

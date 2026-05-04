@@ -45,6 +45,15 @@ fun AuthScreen(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
+        if (uiState.isLoading && !uiState.isAuthenticated) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(getText(I18nStrings.loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        } else {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -192,5 +201,6 @@ fun AuthScreen(
                 }
             }
         }
+        }
+        }
     }
-}

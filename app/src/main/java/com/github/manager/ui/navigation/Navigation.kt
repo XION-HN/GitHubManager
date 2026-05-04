@@ -39,7 +39,11 @@ fun GitHubNavHost() {
     val uiState by authViewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.isAuthenticated) {
-        if (!uiState.isAuthenticated && navController.currentDestination?.route != Routes.AUTH) {
+        if (uiState.isAuthenticated && navController.currentDestination?.route == Routes.AUTH) {
+            navController.navigate(Routes.REPO_LIST) {
+                popUpTo(Routes.AUTH) { inclusive = true }
+            }
+        } else if (!uiState.isAuthenticated && navController.currentDestination?.route != Routes.AUTH) {
             navController.navigate(Routes.AUTH) {
                 popUpTo(0) { inclusive = true }
             }
@@ -95,9 +99,6 @@ fun GitHubNavHost() {
                 },
                 onLogout = {
                     authViewModel.logout()
-                    navController.navigate(Routes.AUTH) {
-                        popUpTo(0) { inclusive = true }
-                    }
                 }
             )
         }
@@ -107,9 +108,6 @@ fun GitHubNavHost() {
                 onBack = { navController.popBackStack() },
                 onLogout = {
                     authViewModel.logout()
-                    navController.navigate(Routes.AUTH) {
-                        popUpTo(0) { inclusive = true }
-                    }
                 }
             )
         }

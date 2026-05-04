@@ -33,6 +33,7 @@ fun AccountScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showSwitchTokenDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
     var newToken by remember { mutableStateOf("") }
 
     Scaffold(
@@ -44,11 +45,17 @@ fun AccountScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
-                actions = {
-                    IconButton(onClick = { showLanguageDialog = true }) {
-                        Icon(Icons.Default.Language, contentDescription = getText(I18nStrings.language))
-                    }
+        actions = {
+                IconButton(onClick = { showThemeDialog = true }) {
+                    Icon(
+                        imageVector = if (themeModeState.value == ThemeMode.DARK) Icons.Default.DarkMode else Icons.Default.LightMode,
+                        contentDescription = getText(I18nStrings.theme)
+                    )
                 }
+                IconButton(onClick = { showLanguageDialog = true }) {
+                    Icon(Icons.Default.Language, contentDescription = getText(I18nStrings.language))
+                }
+            }
             )
         }
     ) { padding ->
@@ -151,10 +158,24 @@ fun AccountScreen(
 
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        OutlinedButton(
-                            onClick = { showLanguageDialog = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
+            OutlinedButton(
+                        onClick = { showThemeDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = if (themeModeState.value == ThemeMode.DARK) Icons.Default.DarkMode else Icons.Default.LightMode,
+                            contentDescription = null
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(getText(I18nStrings.theme))
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedButton(
+                        onClick = { showLanguageDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                             Icon(Icons.Default.Language, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(getText(I18nStrings.language))
@@ -257,22 +278,72 @@ fun AccountScreen(
                         label = I18nStrings.bilingual.zh,
                         subtitle = I18nStrings.bilingual.en,
                         selected = languageModeState.value == LanguageMode.BILINGUAL,
-                        onClick = { languageModeState.value = LanguageMode.BILINGUAL }
+                        onClick = {
+                            languageModeState.value = LanguageMode.BILINGUAL
+                            viewModel.saveLanguageMode("BILINGUAL")
+                        }
                     )
                     LanguageOption(
                         label = I18nStrings.chinese.zh,
                         selected = languageModeState.value == LanguageMode.CHINESE,
-                        onClick = { languageModeState.value = LanguageMode.CHINESE }
+                        onClick = {
+                            languageModeState.value = LanguageMode.CHINESE
+                            viewModel.saveLanguageMode("CHINESE")
+                        }
                     )
                     LanguageOption(
                         label = I18nStrings.english.en,
                         selected = languageModeState.value == LanguageMode.ENGLISH,
-                        onClick = { languageModeState.value = LanguageMode.ENGLISH }
+                        onClick = {
+                            languageModeState.value = LanguageMode.ENGLISH
+                            viewModel.saveLanguageMode("ENGLISH")
+                        }
                     )
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showLanguageDialog = false }) { Text("OK") }
+            }
+        )
+    }
+
+    if (showThemeDialog) {
+        AlertDialog(
+            onDismissRequest = { showThemeDialog = false },
+            title = { BilingualLabel(I18nStrings.theme) },
+            text = {
+                Column {
+                    LanguageOption(
+                        label = I18nStrings.systemDefault.zh,
+                        subtitle = I18nStrings.systemDefault.en,
+                        selected = themeModeState.value == ThemeMode.SYSTEM,
+                        onClick = {
+                            themeModeState.value = ThemeMode.SYSTEM
+                            viewModel.saveThemeMode("SYSTEM")
+                        }
+                    )
+                    LanguageOption(
+                        label = I18nStrings.lightMode.zh,
+                        subtitle = I18nStrings.lightMode.en,
+                        selected = themeModeState.value == ThemeMode.LIGHT,
+                        onClick = {
+                            themeModeState.value = ThemeMode.LIGHT
+                            viewModel.saveThemeMode("LIGHT")
+                        }
+                    )
+                    LanguageOption(
+                        label = I18nStrings.darkMode.zh,
+                        subtitle = I18nStrings.darkMode.en,
+                        selected = themeModeState.value == ThemeMode.DARK,
+                        onClick = {
+                            themeModeState.value = ThemeMode.DARK
+                            viewModel.saveThemeMode("DARK")
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showThemeDialog = false }) { Text("OK") }
             }
         )
     }

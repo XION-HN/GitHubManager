@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 data class AuthUiState(
@@ -29,13 +30,10 @@ class AuthViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            tokenManager.token.collect { savedToken ->
-                if (!savedToken.isNullOrBlank()) {
-                    _uiState.value = _uiState.value.copy(token = savedToken)
-                    validateToken(savedToken)
-                } else {
-                    _uiState.value = _uiState.value.copy(isAuthenticated = false)
-                }
+            val savedToken = tokenManager.token.first()
+            if (!savedToken.isNullOrBlank()) {
+                _uiState.value = _uiState.value.copy(token = savedToken, isLoading = true)
+                validateToken(savedToken)
             }
         }
     }

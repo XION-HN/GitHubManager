@@ -26,6 +26,8 @@ class TokenManager @Inject constructor(
         private val CACHE_REPOS_KEY = stringPreferencesKey("cache_repos")
         private val CACHE_STARRED_KEY = stringPreferencesKey("cache_starred")
         private val CACHE_PROFILE_KEY = stringPreferencesKey("cache_profile")
+        private val LANGUAGE_MODE_KEY = stringPreferencesKey("language_mode")
+        private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
     }
 
     val token: Flow<String?> = context.dataStore.data.map { it[TOKEN_KEY] }
@@ -37,6 +39,26 @@ class TokenManager @Inject constructor(
 
     suspend fun saveUsername(username: String) {
         context.dataStore.edit { it[USERNAME_KEY] = username }
+    }
+
+    suspend fun saveLanguageMode(mode: String) {
+        context.dataStore.edit { it[LANGUAGE_MODE_KEY] = mode }
+    }
+
+    suspend fun loadLanguageMode(): String? {
+        return try {
+            context.dataStore.data.first()[LANGUAGE_MODE_KEY]
+        } catch (e: Exception) { null }
+    }
+
+    suspend fun saveThemeMode(mode: String) {
+        context.dataStore.edit { it[THEME_MODE_KEY] = mode }
+    }
+
+    suspend fun loadThemeMode(): String? {
+        return try {
+            context.dataStore.data.first()[THEME_MODE_KEY]
+        } catch (e: Exception) { null }
     }
 
     suspend fun clearAll() {

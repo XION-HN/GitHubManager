@@ -6,6 +6,10 @@ enum class LanguageMode {
     CHINESE, ENGLISH, BILINGUAL
 }
 
+enum class ThemeMode {
+    SYSTEM, LIGHT, DARK
+}
+
 data class BilingualText(val zh: String, val en: String)
 
 object I18nStrings {
@@ -102,12 +106,18 @@ object I18nStrings {
     val english = BilingualText("英文", "English")
     val bilingual = BilingualText("中英双语", "Bilingual")
 
+    val darkMode = BilingualText("暗色模式", "Dark Mode")
+    val theme = BilingualText("主题", "Theme")
+    val lightMode = BilingualText("浅色模式", "Light Mode")
+    val systemDefault = BilingualText("跟随系统", "System Default")
+
     val loading = BilingualText("加载中...", "Loading...")
     val error = BilingualText("错误", "Error")
     val noData = BilingualText("暂无数据", "No Data")
 }
 
 val languageModeState = mutableStateOf(LanguageMode.BILINGUAL)
+val themeModeState = mutableStateOf(ThemeMode.SYSTEM)
 
 fun getText(text: BilingualText): String {
     return when (languageModeState.value) {
