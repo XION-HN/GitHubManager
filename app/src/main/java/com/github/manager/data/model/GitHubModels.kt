@@ -35,7 +35,7 @@ data class Repository(
     @Json(name = "created_at") val createdAt: String = "",
     @Json(name = "updated_at") val updatedAt: String = "",
     @Json(name = "pushed_at") val pushedAt: String? = null,
-    val topics: List<String> = emptyList(),
+    val topics: List<String>? = emptyList(),
     val archived: Boolean = false,
     val disabled: Boolean = false,
     val visibility: String? = null
@@ -49,32 +49,32 @@ data class Owner(
 )
 
 data class Commit(
-    val sha: String,
-    val commit: CommitDetail,
+    val sha: String = "",
+    val commit: CommitDetail = CommitDetail(CommitAuthor("", "", ""), ""),
     val author: User? = null,
     @Json(name = "html_url") val htmlUrl: String = ""
 )
 
 data class CommitDetail(
-    val author: CommitAuthor,
-    val message: String
+    val author: CommitAuthor = CommitAuthor("", "", ""),
+    val message: String = ""
 )
 
 data class CommitAuthor(
-    val name: String,
-    val email: String,
-    val date: String
+    val name: String = "",
+    val email: String = "",
+    val date: String = ""
 )
 
 data class Issue(
-    val id: Long,
-    val number: Int,
-    val title: String,
+    val id: Long = 0,
+    val number: Int = 0,
+    val title: String = "",
     val body: String? = null,
-    val state: String,
+    val state: String = "open",
     val user: User? = null,
-    val labels: List<Label> = emptyList(),
-    val assignees: List<User> = emptyList(),
+    val labels: List<Label>? = emptyList(),
+    val assignees: List<User>? = emptyList(),
     @Json(name = "created_at") val createdAt: String = "",
     @Json(name = "updated_at") val updatedAt: String = "",
     @Json(name = "closed_at") val closedAt: String? = null,
@@ -95,26 +95,26 @@ data class PullRequestRef(
 )
 
 data class PullRequest(
-    val id: Long,
-    val number: Int,
-    val title: String,
+    val id: Long = 0,
+    val number: Int = 0,
+    val title: String = "",
     val body: String? = null,
-    val state: String,
+    val state: String = "open",
     val user: User? = null,
     @Json(name = "created_at") val createdAt: String = "",
     @Json(name = "updated_at") val updatedAt: String = "",
     @Json(name = "closed_at") val closedAt: String? = null,
     @Json(name = "merged_at") val mergedAt: String? = null,
     @Json(name = "html_url") val htmlUrl: String = "",
-    val head: PRBranch,
-    val base: PRBranch,
+    val head: PRBranch = PRBranch(),
+    val base: PRBranch = PRBranch(),
     val draft: Boolean = false,
     val mergeable: Boolean? = null
 )
 
 data class PRBranch(
-    val ref: String,
-    val sha: String,
+    val ref: String = "",
+    val sha: String = "",
     val label: String? = null
 )
 
@@ -132,19 +132,19 @@ data class CreateIssueRequest(
 )
 
 data class Branch(
-    val name: String,
-    val commit: BranchCommit,
+    val name: String = "",
+    val commit: BranchCommit = BranchCommit(""),
     val protected: Boolean = false
 )
 
 data class BranchCommit(
-    val sha: String,
+    val sha: String = "",
     val url: String = ""
 )
 
 data class Workflow(
-    val id: Long,
-    val name: String,
+    val id: Long = 0,
+    val name: String = "",
     val path: String = "",
     val state: String = "active",
     @Json(name = "created_at") val createdAt: String = "",
@@ -153,11 +153,11 @@ data class Workflow(
 
 data class WorkflowRunsResponse(
     @Json(name = "total_count") val totalCount: Int = 0,
-    @Json(name = "workflow_runs") val workflowRuns: List<WorkflowRun> = emptyList()
+    @Json(name = "workflow_runs") val workflowRuns: List<WorkflowRun>? = emptyList()
 )
 
 data class WorkflowRun(
-    val id: Long,
+    val id: Long = 0,
     val name: String = "",
     @Json(name = "head_branch") val headBranch: String = "",
     @Json(name = "head_sha") val headSha: String = "",
@@ -186,9 +186,77 @@ data class WorkflowDispatchRequest(
 
 data class WorkflowListResponse(
     @Json(name = "total_count") val totalCount: Int = 0,
-    @Json(name = "workflows") val workflows: List<Workflow> = emptyList()
+    @Json(name = "workflows") val workflows: List<Workflow>? = emptyList()
 )
 
 data class WorkflowRunResponseWrapper(
     @Json(name = "workflow_run") val workflowRun: WorkflowRun? = null
+)
+
+data class SearchResult(
+    @Json(name = "total_count") val totalCount: Int = 0,
+    @Json(name = "incomplete_results") val incompleteResults: Boolean = false,
+    val items: List<Repository>? = emptyList()
+)
+
+data class UserSearchResult(
+    @Json(name = "total_count") val totalCount: Int = 0,
+    @Json(name = "incomplete_results") val incompleteResults: Boolean = false,
+    val items: List<User>? = emptyList()
+)
+
+data class RepoContent(
+    val name: String = "",
+    val path: String = "",
+    val sha: String = "",
+    val size: Long = 0,
+    val type: String = "file",
+    @Json(name = "download_url") val downloadUrl: String? = null,
+    @Json(name = "html_url") val htmlUrl: String = "",
+    val encoding: String? = null,
+    val content: String? = null
+)
+
+data class IssueComment(
+    val id: Long = 0,
+    val body: String = "",
+    val user: User? = null,
+    @Json(name = "created_at") val createdAt: String = "",
+    @Json(name = "html_url") val htmlUrl: String = ""
+)
+
+data class UpdateIssueRequest(
+    val title: String? = null,
+    val body: String? = null,
+    val state: String? = null
+)
+
+data class MergePRRequest(
+    @Json(name = "commit_title") val commitTitle: String? = null,
+    @Json(name = "commit_message") val commitMessage: String? = null,
+    val sha: String? = null,
+    @Json(name = "merge_method") val mergeMethod: String = "merge"
+)
+
+data class Release(
+    val id: Long = 0,
+    @Json(name = "tag_name") val tagName: String = "",
+    val name: String? = null,
+    val body: String? = null,
+    val draft: Boolean = false,
+    val prerelease: Boolean = false,
+    @Json(name = "created_at") val createdAt: String = "",
+    @Json(name = "published_at") val publishedAt: String? = null,
+    @Json(name = "html_url") val htmlUrl: String = "",
+    val author: User? = null,
+    val assets: List<ReleaseAsset>? = emptyList()
+)
+
+data class ReleaseAsset(
+    val id: Long = 0,
+    val name: String = "",
+    @Json(name = "content_type") val contentType: String = "",
+    val size: Long = 0,
+    @Json(name = "browser_download_url") val downloadUrl: String = "",
+    @Json(name = "download_count") val downloadCount: Int = 0
 )

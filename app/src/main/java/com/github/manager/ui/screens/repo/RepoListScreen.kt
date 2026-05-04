@@ -25,6 +25,7 @@ import com.github.manager.ui.i18n.*
 fun RepoListScreen(
     onRepoClick: (owner: String, repo: String) -> Unit,
     onAccountClick: () -> Unit,
+    onSearchClick: () -> Unit,
     onLogout: () -> Unit,
     viewModel: RepoListViewModel = hiltViewModel()
 ) {
@@ -47,6 +48,9 @@ fun RepoListScreen(
                 }
             },
             actions = {
+                IconButton(onClick = onSearchClick) {
+                    Icon(Icons.Default.Search, contentDescription = getText(I18nStrings.search))
+                }
                 IconButton(onClick = { showCreateDialog = true }) {
                     Icon(Icons.Default.Add, contentDescription = getText(I18nStrings.createRepo))
                 }
@@ -78,7 +82,7 @@ fun RepoListScreen(
             } else if (uiState.error != null) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(uiState.error!!, color = MaterialTheme.colorScheme.error)
+                        Text(uiState.error ?: "", color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(onClick = viewModel::loadRepos) { Text(getText(I18nStrings.retry)) }
                     }
@@ -211,7 +215,7 @@ fun RepoItem(
                 }
             }
 
-            if (repo.topics.isNotEmpty()) {
+            if (!repo.topics.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     repo.topics.take(3).forEach { topic ->

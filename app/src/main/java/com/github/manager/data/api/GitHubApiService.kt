@@ -173,4 +173,74 @@ interface GitHubApiService {
         @Path("repo") repo: String,
         @Path("runId") runId: Long
     ): Response<Unit>
+
+    @GET("search/repositories")
+    suspend fun searchRepositories(
+        @Query("q") query: String,
+        @Query("sort") sort: String = "stars",
+        @Query("order") order: String = "desc",
+        @Query("per_page") perPage: Int = 30,
+        @Query("page") page: Int = 1
+    ): SearchResult
+
+    @GET("search/users")
+    suspend fun searchUsers(
+        @Query("q") query: String,
+        @Query("per_page") perPage: Int = 30,
+        @Query("page") page: Int = 1
+    ): UserSearchResult
+
+    @GET("repos/{owner}/{repo}/contents/{path}")
+    suspend fun getRepoContent(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("path") path: String,
+        @Query("ref") ref: String? = null
+    ): List<RepoContent>
+
+    @GET("repos/{owner}/{repo}/readme")
+    suspend fun getReadme(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Query("ref") ref: String? = null
+    ): RepoContent
+
+    @GET("repos/{owner}/{repo}/issues/{number}/comments")
+    suspend fun getIssueComments(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("number") number: Int,
+        @Query("per_page") perPage: Int = 30
+    ): List<IssueComment>
+
+    @POST("repos/{owner}/{repo}/issues/{number}/comments")
+    suspend fun createIssueComment(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("number") number: Int,
+        @Body body: Map<String, String>
+    ): IssueComment
+
+    @PATCH("repos/{owner}/{repo}/issues/{number}")
+    suspend fun updateIssue(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("number") number: Int,
+        @Body request: UpdateIssueRequest
+    ): Issue
+
+    @PUT("repos/{owner}/{repo}/pulls/{number}/merge")
+    suspend fun mergePullRequest(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("number") number: Int,
+        @Body request: MergePRRequest
+    ): Response<Unit>
+
+    @GET("repos/{owner}/{repo}/releases")
+    suspend fun getReleases(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Query("per_page") perPage: Int = 20
+    ): List<Release>
 }

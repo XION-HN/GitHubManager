@@ -68,14 +68,14 @@ fun AccountScreen(
             uiState.error != null -> {
                 Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(uiState.error!!, color = MaterialTheme.colorScheme.error)
+                        Text(uiState.error ?: "", color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(onClick = viewModel::loadProfile) { Text(getText(I18nStrings.retry)) }
                     }
                 }
             }
             uiState.user != null -> {
-                val user = uiState.user!!
+                val user = uiState.user ?: return@Column
                 Column(
                     modifier = Modifier
                         .fillMaxSize()

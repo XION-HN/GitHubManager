@@ -1,5 +1,7 @@
 package com.github.manager.ui.screens.repo
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
@@ -13,21 +15,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.github.manager.data.model.Branch
-import com.github.manager.data.model.Commit
-import com.github.manager.data.model.Issue
-import com.github.manager.data.model.PullRequest
-import com.github.manager.data.model.Workflow
-import com.github.manager.data.model.WorkflowRun
+import com.github.manager.data.model.*
 import com.github.manager.ui.i18n.*
 import kotlinx.coroutines.delay
+
+internal fun safeSubstring(s: String, start: Int, end: Int): String {
+    return try { s.substring(start, end) } catch (e: Exception) { s }
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -41,6 +43,10 @@ fun RepoDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showCreateIssueDialog by remember { mutableStateOf(false) }
     var showBranchDialog by remember { mutableStateOf(false) }
+    var showTriggerWorkflowDialog by remember { mutableStateOf(false) }
+    var showCommentDialog by remember { mutableIntStateOf(-1) }
+    var showCommentsDialog by remember { mutableIntStateOf(-1) }
+    val context = LocalContext.current
 
     LaunchedEffect(owner, repo) {
         viewModel.init(owner, repo)
@@ -52,6 +58,13 @@ fun RepoDetailScreen(
                 delay(15000)
                 viewModel.loadWorkflowRuns()
             }
+        }
+    }
+
+    LaunchedEffect(uiState.actionMessage) {
+        if (uiState.actionMessage != null) {
+            delay(2000)
+            viewModel.clearActionMessage()
         }
     }
 
@@ -114,9 +127,7 @@ fun RepoDetailScreen(
                         }
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable(role = Role.Button) {
-                                showBranchDialog = true
-                            }
+                            modifier = Modifier.clickable(role = Role.Button) { showBranchDialog = true }
                         ) {
                             Icon(Icons.Default.CallSplit, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
@@ -128,35 +139,40 @@ fun RepoDetailScreen(
                         }
                     }
                 }
-                Divider()
+                HorizontalDivider()
+            }
+
+            uiState.actionMessage?.let { msg ->
+                Snackbar(
+                    modifier = Modifier.padding(8.dp),
+                    action = { TextButton(onClick = { viewModel.clearActionMessage() }) { Text("OK") } }
+                ) { Text(msg, style = MaterialTheme.typography.bodySmall) }
             }
 
             val tabs = listOf(
                 getText(I18nStrings.commits) to "Commits",
                 getText(I18nStrings.issues) to "Issues",
-                getText(I18nStrings.pullRequests) to "Pull Requests",
+                getText(I18nStrings.pullRequests) to "PRs",
                 getText(I18nStrings.branches) to "Branches",
-                getText(I18nStrings.actions) to "Actions"
+                getText(I18nStrings.files) to "Files",
+                getText(I18nStrings.actions) to "Actions",
+                getText(I18nStrings.releases) to "Releases"
             )
             ScrollableTabRow(
-                selectedTabIndex = if (uiState.currentTab > 4) 0 else uiState.currentTab,
+                selectedTabIndex = if (uiState.currentTab >= tabs.size) 0 else uiState.currentTab,
                 edgePadding = 8.dp
             ) {
-                tabs.forEachIndexed { index, (label, _) ->
+                tabs.forEachIndexed { index, (label, enLabel) ->
                     Tab(
                         selected = uiState.currentTab == index,
                         onClick = { viewModel.onTabChanged(index) },
                         text = {
                             when (languageModeState.value) {
                                 LanguageMode.CHINESE -> Text(label)
-                                LanguageMode.ENGLISH -> Text(tabs[index].second)
+                                LanguageMode.ENGLISH -> Text(enLabel)
                                 LanguageMode.BILINGUAL -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(label, fontSize = 12.sp)
-                                    Text(
-                                        tabs[index].second,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        fontSize = 9.sp
-                                    )
+                                    Text(label, fontSize = 11.sp)
+                                    Text(enLabel, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), fontSize = 8.sp)
                                 }
                             }
                         }
@@ -173,23 +189,11 @@ fun RepoDetailScreen(
                     targetState = uiState.currentTab,
                     transitionSpec = {
                         if (targetState > initialState) {
-                            slideInHorizontally(
-                                initialOffsetX = { it / 3 },
-                                animationSpec = tween(300)
-                            ) + fadeIn(tween(300)) with
-                            slideOutHorizontally(
-                                targetOffsetX = { -it / 3 },
-                                animationSpec = tween(300)
-                            ) + fadeOut(tween(300))
+                            slideInHorizontally(initialOffsetX = { it / 3 }, animationSpec = tween(300)) + fadeIn(tween(300)) with
+                                slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = tween(300)) + fadeOut(tween(300))
                         } else {
-                            slideInHorizontally(
-                                initialOffsetX = { -it / 3 },
-                                animationSpec = tween(300)
-                            ) + fadeIn(tween(300)) with
-                            slideOutHorizontally(
-                                targetOffsetX = { it / 3 },
-                                animationSpec = tween(300)
-                            ) + fadeOut(tween(300))
+                            slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = tween(300)) + fadeIn(tween(300)) with
+                                slideOutHorizontally(targetOffsetX = { it / 3 }, animationSpec = tween(300)) + fadeOut(tween(300))
                         }
                     }
                 ) { tab ->
@@ -197,25 +201,52 @@ fun RepoDetailScreen(
                         0 -> CommitsList(uiState.commits)
                         1 -> IssuesList(
                             issues = uiState.issues,
-                            onCreateIssue = { showCreateIssueDialog = true }
+                            stateFilter = uiState.issueStateFilter,
+                            onStateFilterChange = { viewModel.setIssueFilter(it) },
+                            onCreateIssue = { showCreateIssueDialog = true },
+                            onCloseIssue = { viewModel.closeIssue(it) },
+                            onReopenIssue = { viewModel.reopenIssue(it) },
+                            onViewComments = { showCommentsDialog = it },
+                            onAddComment = { showCommentDialog = it }
                         )
-                        2 -> PullRequestsList(uiState.pullRequests)
+                        2 -> PullRequestsList(
+                            prs = uiState.pullRequests,
+                            stateFilter = uiState.prStateFilter,
+                            onStateFilterChange = { viewModel.setPrFilter(it) },
+                            onMerge = { viewModel.mergePullRequest(it) }
+                        )
                         3 -> BranchesList(
                             branches = uiState.branches,
                             currentBranch = uiState.currentBranch ?: uiState.repo?.defaultBranch ?: "main",
                             onSwitchBranch = { viewModel.switchBranch(it) }
                         )
-                        4 -> ActionsTab(
+                        4 -> FileBrowserTab(
+                            files = uiState.files,
+                            currentPath = uiState.currentPath,
+                            canNavigateUp = uiState.pathStack.isNotEmpty(),
+                            onNavigateUp = { viewModel.navigateUp() },
+                            onFileClick = { file ->
+                                if (file.type == "dir") {
+                                    viewModel.loadFiles(file.path)
+                                } else {
+                                    file.htmlUrl.takeIf { it.isNotBlank() }?.let {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
+                                    }
+                                }
+                            },
+                            readmeContent = uiState.readmeContent,
+                            onLoadReadme = { viewModel.loadReadme() }
+                        )
+                        5 -> ActionsTab(
                             workflows = uiState.workflows,
                             runs = uiState.workflowRuns,
                             onRefresh = { viewModel.loadWorkflowRuns() },
-                            onTriggerWorkflow = { workflowId, ref ->
-                                viewModel.dispatchWorkflow(workflowId, ref)
-                            },
-                            onReRun = { runId -> viewModel.reRunWorkflow(runId) },
-                            onCancelRun = { runId -> viewModel.cancelWorkflowRun(runId) },
+                            onTriggerWorkflow = { showTriggerWorkflowDialog = true },
+                            onReRun = { viewModel.reRunWorkflow(it) },
+                            onCancelRun = { viewModel.cancelWorkflowRun(it) },
                             isMonitoring = uiState.isMonitoringActions
                         )
+                        6 -> ReleasesList(uiState.releases)
                     }
                 }
             }
@@ -229,27 +260,18 @@ fun RepoDetailScreen(
             text = { Text(getText(I18nStrings.deleteRepoConfirm)) },
             confirmButton = {
                 TextButton(
-                    onClick = {
-                        viewModel.deleteRepo()
-                        showDeleteDialog = false
-                        onBack()
-                    },
+                    onClick = { viewModel.deleteRepo(); showDeleteDialog = false; onBack() },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) { Text(getText(I18nStrings.delete)) }
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text(getText(I18nStrings.cancel)) }
-            }
+            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text(getText(I18nStrings.cancel)) } }
         )
     }
 
     if (showCreateIssueDialog) {
         CreateIssueDialog(
             onDismiss = { showCreateIssueDialog = false },
-            onCreate = { title, body ->
-                viewModel.createIssue(title, body)
-                showCreateIssueDialog = false
-            }
+            onCreate = { t, b -> viewModel.createIssue(t, b); showCreateIssueDialog = false }
         )
     }
 
@@ -257,494 +279,33 @@ fun RepoDetailScreen(
         BranchSelectDialog(
             branches = uiState.branches,
             currentBranch = uiState.currentBranch ?: uiState.repo?.defaultBranch ?: "main",
-            onSelect = {
-                viewModel.switchBranch(it)
-                showBranchDialog = false
-            },
+            onSelect = { viewModel.switchBranch(it); showBranchDialog = false },
             onDismiss = { showBranchDialog = false }
         )
     }
-}
 
-@Composable
-fun CommitsList(commits: List<Commit>) {
-    LazyColumn(
-        contentPadding = PaddingValues(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        items(commits) { commit ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        text = commit.commit.message,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = commit.commit.author.name,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = commit.sha.take(7),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Text(
-                        text = commit.commit.author.date,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun IssuesList(
-    issues: List<Issue>,
-    onCreateIssue: () -> Unit
-) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            contentPadding = PaddingValues(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            items(issues) { issue ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 2.dp)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = if (issue.state == "open") Icons.Default.BugReport else Icons.Default.CheckCircle,
-                                contentDescription = issue.state,
-                                tint = if (issue.state == "open") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "#${issue.number} ${issue.title}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            issue.labels.forEach { label ->
-                                SuggestionChip(
-                                    onClick = {},
-                                    label = { Text(label.name, style = MaterialTheme.typography.labelSmall) }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        FloatingActionButton(
-            onClick = onCreateIssue,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = getText(I18nStrings.createIssue))
-        }
-    }
-}
-
-@Composable
-fun PullRequestsList(prs: List<PullRequest>) {
-    LazyColumn(
-        contentPadding = PaddingValues(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        items(prs) { pr ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        val icon = when (pr.state) {
-                            "open" -> Icons.Default.OpenInNew
-                            "closed" -> if (pr.mergedAt != null) Icons.Default.CallMerge else Icons.Default.Close
-                            else -> Icons.Default.OpenInNew
-                        }
-                        val color = when {
-                            pr.mergedAt != null -> MaterialTheme.colorScheme.primary
-                            pr.state == "open" -> MaterialTheme.colorScheme.primary
-                            else -> MaterialTheme.colorScheme.error
-                        }
-                        Icon(icon, contentDescription = pr.state, tint = color, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "#${pr.number} ${pr.title}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "${pr.head.ref} -> ${pr.base.ref}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        if (pr.draft) {
-                            SuggestionChip(
-                                onClick = {},
-                                label = { Text(getText(I18nStrings.draft), style = MaterialTheme.typography.labelSmall) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun BranchesList(
-    branches: List<Branch>,
-    currentBranch: String,
-    onSwitchBranch: (String) -> Unit
-) {
-    LazyColumn(
-        contentPadding = PaddingValues(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        items(branches) { branch ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 2.dp)
-                    .clickable { onSwitchBranch(branch.name) }
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        Icons.Default.CallSplit,
-                        contentDescription = null,
-                        tint = if (branch.name == currentBranch) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            branch.name,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (branch.name == currentBranch) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                            fontWeight = if (branch.name == currentBranch) FontWeight.Bold else FontWeight.Normal
-                        )
-                        Text(
-                            branch.commit.sha.take(7),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (branch.name == currentBranch) {
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                    if (branch.protected) {
-                        Icon(
-                            Icons.Default.Lock,
-                            contentDescription = getText(I18nStrings.protected),
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun BranchSelectDialog(
-    branches: List<Branch>,
-    currentBranch: String,
-    onSelect: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { BilingualLabel(I18nStrings.selectBranch) },
-        text = {
-            LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
-                items(branches) { branch ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelect(branch.name) }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.CallSplit,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = if (branch.name == currentBranch) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            branch.name,
-                            fontWeight = if (branch.name == currentBranch) FontWeight.Bold else FontWeight.Normal,
-                            color = if (branch.name == currentBranch) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                        )
-                        if (branch.name == currentBranch) {
-                            Spacer(modifier = Modifier.weight(1f))
-                            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(getText(I18nStrings.cancel)) }
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ActionsTab(
-    workflows: List<Workflow>,
-    runs: List<WorkflowRun>,
-    onRefresh: () -> Unit,
-    onTriggerWorkflow: (Long, String) -> Unit,
-    onReRun: (Long) -> Unit,
-    onCancelRun: (Long) -> Unit,
-    isMonitoring: Boolean
-) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BilingualLabelSmall(I18nStrings.actions)
-                if (isMonitoring) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 1.dp)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        getText(I18nStrings.monitoring),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-            IconButton(onClick = onRefresh) {
-                Icon(Icons.Default.Refresh, contentDescription = getText(I18nStrings.refresh))
-            }
-        }
-
-        LazyColumn(
-            contentPadding = PaddingValues(vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            if (runs.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        BilingualLabelSmall(I18nStrings.noRuns)
-                    }
-                }
-            }
-
-            items(runs) { run ->
-                WorkflowRunCard(
-                    run = run,
-                    onReRun = { onReRun(run.id) },
-                    onCancel = { onCancelRun(run.id) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun WorkflowRunCard(
-    run: WorkflowRun,
-    onReRun: () -> Unit,
-    onCancel: () -> Unit
-) {
-    val (icon, color) = when (run.conclusion) {
-        "success" -> Icons.Default.CheckCircle to Color(0xFF2ea44f)
-        "failure" -> Icons.Default.Cancel to Color(0xFFd73a49)
-        "cancelled" -> Icons.Default.StopCircle to Color(0xFFd29922)
-        null -> when (run.status) {
-            "in_progress" -> Icons.Default.Sync to Color(0xFF0366d6)
-            "queued" -> Icons.Default.Schedule to Color(0xFFd29922)
-            "waiting" -> Icons.Default.HourglassEmpty to Color(0xFFd29922)
-            else -> Icons.Default.PlayCircleFilled to Color(0xFF0366d6)
-        }
-        else -> Icons.Default.Help to Color.Gray
+    if (showTriggerWorkflowDialog) {
+        TriggerWorkflowDialog(
+            workflows = uiState.workflows,
+            defaultBranch = uiState.currentBranch ?: uiState.repo?.defaultBranch ?: "main",
+            onTrigger = { id, ref -> viewModel.dispatchWorkflow(id, ref); showTriggerWorkflowDialog = false },
+            onDismiss = { showTriggerWorkflowDialog = false }
+        )
     }
 
-    val statusText = when (run.conclusion) {
-        "success" -> getText(I18nStrings.success)
-        "failure" -> getText(I18nStrings.failed)
-        "cancelled" -> getText(I18nStrings.cancelled)
-        null -> when (run.status) {
-            "in_progress" -> getText(I18nStrings.inProgress)
-            "queued" -> getText(I18nStrings.queued)
-            "waiting" -> getText(I18nStrings.waiting)
-            else -> run.status
-        }
-        else -> run.conclusion ?: ""
+    if (showCommentDialog >= 0) {
+        AddCommentDialog(
+            onDismiss = { showCommentDialog = -1 },
+            onAdd = { body -> viewModel.addComment(body); showCommentDialog = -1 }
+        )
     }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                    if (run.status == "in_progress") {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                            color = color
-                        )
-                    } else {
-                        Icon(icon, contentDescription = statusText, tint = color, modifier = Modifier.size(16.dp))
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        run.name.ifBlank { "${getText(I18nStrings.runNumber)}${run.id}" },
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                Row {
-                    if (run.status == "in_progress" || run.status == "queued" || run.status == "waiting") {
-                        IconButton(onClick = onCancel, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Stop, contentDescription = getText(I18nStrings.cancelRun), modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error)
-                        }
-                    } else {
-                        IconButton(onClick = onReRun, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Replay, contentDescription = getText(I18nStrings.reRun), modifier = Modifier.size(14.dp))
-                        }
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.CallSplit, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(run.headBranch, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(run.headSha.take(7), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        run.createdAt.substring(0, 10),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(2.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    statusText,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = color,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
+    if (showCommentsDialog >= 0) {
+        LaunchedEffect(showCommentsDialog) { viewModel.loadIssueComments(showCommentsDialog) }
+        CommentsDialog(
+            comments = uiState.issueComments,
+            onDismiss = { showCommentsDialog = -1 },
+            onAddComment = { showCommentDialog = showCommentsDialog; showCommentsDialog = -1 }
+        )
     }
-}
-
-@Composable
-fun CreateIssueDialog(
-    onDismiss: () -> Unit,
-    onCreate: (title: String, body: String?) -> Unit
-) {
-    var title by remember { mutableStateOf("") }
-    var body by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { BilingualLabel(I18nStrings.createIssue) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text(getText(I18nStrings.title)) },
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = body,
-                    onValueChange = { body = it },
-                    label = { Text(getText(I18nStrings.bodyOptional)) },
-                    maxLines = 5
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onCreate(title, body.ifBlank { null }) },
-                enabled = title.isNotBlank()
-            ) { Text(getText(I18nStrings.create)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(getText(I18nStrings.cancel)) }
-        }
-    )
 }

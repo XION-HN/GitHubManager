@@ -42,7 +42,7 @@ object I18nStrings {
     val commits = BilingualText("提交", "Commits")
     val issues = BilingualText("问题", "Issues")
     val pullRequests = BilingualText("拉取请求", "Pull Requests")
-    val branches = BilingualText("分支", "Branchs")
+    val branches = BilingualText("分支", "Branches")
     val actions = BilingualText("工作流", "Actions")
 
     val star = BilingualText("收藏", "Star")
@@ -114,6 +114,39 @@ object I18nStrings {
     val loading = BilingualText("加载中...", "Loading...")
     val error = BilingualText("错误", "Error")
     val noData = BilingualText("暂无数据", "No Data")
+
+    val search = BilingualText("搜索", "Search")
+    val searchRepos = BilingualText("搜索仓库", "Search Repositories")
+    val searchUsers = BilingualText("搜索用户", "Search Users")
+    val noSearchResults = BilingualText("无搜索结果", "No search results")
+    val enterSearchQuery = BilingualText("输入搜索关键词", "Enter search query")
+
+    val files = BilingualText("文件", "Files")
+    val readme = BilingualText("自述文件", "README")
+    val releases = BilingualText("发行版", "Releases")
+    val noReleases = BilingualText("暂无发行版", "No Releases")
+    val download = BilingualText("下载", "Download")
+    val assets = BilingualText("附件", "Assets")
+
+    val closeIssue = BilingualText("关闭问题", "Close Issue")
+    val reopenIssue = BilingualText("重新打开问题", "Reopen Issue")
+    val mergePR = BilingualText("合并拉取请求", "Merge Pull Request")
+    val mergeSuccess = BilingualText("合并成功", "Merged Successfully")
+    val addComment = BilingualText("添加评论", "Add Comment")
+    val comment = BilingualText("评论", "Comment")
+    val comments = BilingualText("评论", "Comments")
+    val stateFilter = BilingualText("状态筛选", "State Filter")
+    val open = BilingualText("开放", "Open")
+    val closed = BilingualText("已关闭", "Closed")
+    val all = BilingualText("全部", "All")
+
+    val triggerWorkflowDialog = BilingualText("触发工作流", "Trigger Workflow")
+    val selectWorkflow = BilingualText("选择工作流", "Select Workflow")
+    val branchRef = BilingualText("分支引用", "Branch Ref")
+    val trigger = BilingualText("触发", "Trigger")
+
+    val pullToRefresh = BilingualText("下拉刷新", "Pull to Refresh")
+    val loadMore = BilingualText("加载更多", "Load More")
 }
 
 val languageModeState = mutableStateOf(LanguageMode.BILINGUAL)

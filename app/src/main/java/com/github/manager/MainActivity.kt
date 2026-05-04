@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import com.github.manager.data.local.TokenManager
 import com.github.manager.ui.i18n.LanguageMode
 import com.github.manager.ui.i18n.ThemeMode
@@ -16,9 +17,8 @@ import com.github.manager.ui.i18n.themeModeState
 import com.github.manager.ui.navigation.GitHubNavHost
 import com.github.manager.ui.theme.GitHubManagerTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -43,19 +43,23 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun loadPreferences() {
-        CoroutineScope(Dispatchers.IO).launch {
-            tokenManager.loadLanguageMode()?.let { mode ->
-                languageModeState.value = when (mode) {
-                    "CHINESE" -> LanguageMode.CHINESE
-                    "ENGLISH" -> LanguageMode.ENGLISH
-                    else -> LanguageMode.BILINGUAL
+        lifecycleScope.launch(Dispatchers.IO) {
+            val langMode = tokenManager.loadLanguageMode()
+            val themeMode = tokenManager.loadThemeMode()
+            withContext(Dispatchers.Main) {
+                langMode?.let { mode ->
+                    languageModeState.value = when (mode) {
+                        "CHINESE" -> LanguageMode.CHINESE
+                        "ENGLISH" -> LanguageMode.ENGLISH
+                        else -> LanguageMode.BILINGUAL
+                    }
                 }
-            }
-            tokenManager.loadThemeMode()?.let { mode ->
-                themeModeState.value = when (mode) {
-                    "LIGHT" -> ThemeMode.LIGHT
-                    "DARK" -> ThemeMode.DARK
-                    else -> ThemeMode.SYSTEM
+                themeMode?.let { mode ->
+                    themeModeState.value = when (mode) {
+                        "LIGHT" -> ThemeMode.LIGHT
+                        "DARK" -> ThemeMode.DARK
+                        else -> ThemeMode.SYSTEM
+                    }
                 }
             }
         }

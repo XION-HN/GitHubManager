@@ -100,11 +100,12 @@ class GitHubRepository @Inject constructor(
     }
 
     suspend fun getWorkflows(owner: String, repo: String): Result<List<Workflow>> = safeApiCall {
-        apiService.getWorkflows(owner, repo).workflows
+        apiService.getWorkflows(owner, repo).workflows ?: emptyList()
     }
 
     suspend fun getWorkflowRuns(owner: String, repo: String, page: Int = 1): Result<WorkflowRunsResponse> = safeApiCall {
-        apiService.getWorkflowRuns(owner, repo, page = page)
+        val response = apiService.getWorkflowRuns(owner, repo, page = page)
+        response.copy(workflowRuns = response.workflowRuns ?: emptyList())
     }
 
     suspend fun getWorkflowRun(owner: String, repo: String, runId: Long): Result<WorkflowRun> = safeApiCall {
@@ -136,6 +137,49 @@ class GitHubRepository @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    suspend fun searchRepositories(query: String, page: Int = 1): Result<SearchResult> = safeApiCall {
+        val result = apiService.searchRepositories(query, page = page)
+        result.copy(items = result.items ?: emptyList())
+    }
+
+    suspend fun searchUsers(query: String, page: Int = 1): Result<UserSearchResult> = safeApiCall {
+        val result = apiService.searchUsers(query, page = page)
+        result.copy(items = result.items ?: emptyList())
+    }
+
+    suspend fun getRepoContent(owner: String, repo: String, path: String, ref: String? = null): Result<List<RepoContent>> = safeApiCall {
+        apiService.getRepoContent(owner, repo, path, ref) ?: emptyList()
+    }
+
+    suspend fun getReadme(owner: String, repo: String, ref: String? = null): Result<RepoContent> = safeApiCall {
+        apiService.getReadme(owner, repo, ref)
+    }
+
+    suspend fun getIssueComments(owner: String, repo: String, number: Int): Result<List<IssueComment>> = safeApiCall {
+        apiService.getIssueComments(owner, repo, number) ?: emptyList()
+    }
+
+    suspend fun createIssueComment(owner: String, repo: String, number: Int, body: String): Result<IssueComment> = safeApiCall {
+        apiService.createIssueComment(owner, repo, number, mapOf("body" to body))
+    }
+
+    suspend fun updateIssue(owner: String, repo: String, number: Int, state: String? = null, title: String? = null, body: String? = null): Result<Issue> = safeApiCall {
+        apiService.updateIssue(owner, repo, number, UpdateIssueRequest(title, body, state))
+    }
+
+    suspend fun mergePullRequest(owner: String, repo: String, number: Int): Result<Boolean> {
+        return try {
+            val response = apiService.mergePullRequest(owner, repo, number, MergePRRequest())
+            Result.success(response.isSuccessful)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getReleases(owner: String, repo: String): Result<List<Release>> = safeApiCall {
+        apiService.getReleases(owner, repo) ?: emptyList()
     }
 
     private suspend fun <T> safeApiCall(call: suspend () -> T): Result<T> {

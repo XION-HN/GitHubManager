@@ -20,12 +20,14 @@ import com.github.manager.ui.screens.auth.AuthScreen
 import com.github.manager.ui.screens.auth.AuthViewModel
 import com.github.manager.ui.screens.repo.RepoDetailScreen
 import com.github.manager.ui.screens.repo.RepoListScreen
+import com.github.manager.ui.screens.search.SearchScreen
 
 object Routes {
     const val AUTH = "auth"
     const val REPO_LIST = "repoList"
     const val ACCOUNT = "account"
     const val REPO_DETAIL = "repoDetail/{owner}/{repo}"
+    const val SEARCH = "search"
 
     fun repoDetail(owner: String, repo: String) = "repoDetail/$owner/$repo"
 }
@@ -79,14 +81,7 @@ fun GitHubNavHost() {
         }
     ) {
         composable(Routes.AUTH) {
-            AuthScreen(
-                onLoginSuccess = {
-                    navController.navigate(Routes.REPO_LIST) {
-                        popUpTo(Routes.AUTH) { inclusive = true }
-                    }
-                },
-                viewModel = authViewModel
-            )
+            AuthScreen(viewModel = authViewModel)
         }
 
         composable(Routes.REPO_LIST) {
@@ -96,6 +91,9 @@ fun GitHubNavHost() {
                 },
                 onAccountClick = {
                     navController.navigate(Routes.ACCOUNT)
+                },
+                onSearchClick = {
+                    navController.navigate(Routes.SEARCH)
                 },
                 onLogout = {
                     authViewModel.logout()
@@ -109,6 +107,15 @@ fun GitHubNavHost() {
                 onLogout = {
                     authViewModel.logout()
                 }
+            )
+        }
+
+        composable(Routes.SEARCH) {
+            SearchScreen(
+                onRepoClick = { owner, repo ->
+                    navController.navigate(Routes.repoDetail(owner, repo))
+                },
+                onBack = { navController.popBackStack() }
             )
         }
 

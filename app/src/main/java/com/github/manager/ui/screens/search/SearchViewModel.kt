@@ -1,0 +1,104 @@
+package com.github.manager.ui.screens.search
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.github.manager.data.model.Repository
+import com.github.manager.data.model.User
+import com.github.manager.data.repository.GitHubRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+data class SearchUiState(
+    val query: String = "",
+    val isRepoSearch: Boolean = true,
+    val repos: List<Repository> = emptyList(),
+    val users: List<User> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val page: Int = 1,
+    val hasMore: Boolean = true,
+    val totalCount: Int = 0
+)
+
+@HiltViewModel
+class SearchViewModel @Inject constructor(
+    private val gitHubRepository: GitHubRepository
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(SearchUiState())
+    val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
+
+    private var searchJob: Job? = null
+
+    fun onQueryChanged(query: String) {
+        _uiState.value = _uiState.value.copy(query = query)
+        searchJob?.cancel()
+        if (query.isBlank()) {
+            _uiState.value = _uiState.value.copy(repos = emptyList(), users = emptyList(), isLoading = false, error = null, totalCount = 0)
+            return
+        }
+        searchJob = viewModelScope.launch {
+            delay(400)
+            _uiState.value = _uiState.value.copy(page = 1, hasMore = true)
+            performSearch()
+        }
+    }
+
+    fun toggleSearchType(isRepo: Boolean) {
+        _uiState.value = _uiState.value.copy(isRepoSearch = isRepo, repos = emptyList(), users = emptyList(), page = 1, hasMore = true, totalCount = 0)
+        if (_uiState.value.query.isNotBlank()) {
+            searchJob?.cancel()
+            searchJob = viewModelScope.launch { performSearch() }
+        }
+    }
+
+    fun loadMore() {
+        if (_uiState.value.isLoading || !_uiState.value.hasMore) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(page = _uiState.value.page + 1)
+            performSearch(append = true)
+        }
+    }
+
+    private suspend fun performSearch(append: Boolean = false) {
+        val query = _uiState.value.query
+        if (query.isBlank()) return
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        val page = _uiState.value.page
+        if (_uiState.value.isRepoSearch) {
+            gitHubRepository.searchRepositories(query, page = page)
+                .onSuccess { result ->
+                    val repos = if (append) _uiState.value.repos + (result.items ?: emptyList()) else (result.items ?: emptyList())
+                    _uiState.value = _uiState.value.copy(
+                        repos = repos,
+                        isLoading = false,
+                        totalCount = result.totalCount,
+                        hasMore = repos.size < result.totalCount
+                    )
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                }
+        } else {
+            gitHubRepository.searchUsers(query, page = page)
+                .onSuccess { result ->
+                    val users = if (append) _uiState.value.users + (result.items ?: emptyList()) else (result.items ?: emptyList())
+                    _uiState.value = _uiState.value.copy(
+                        users = users,
+                        isLoading = false,
+                        totalCount = result.totalCount,
+                        hasMore = users.size < result.totalCount
+                    )
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                }
+        }
+    }
+}

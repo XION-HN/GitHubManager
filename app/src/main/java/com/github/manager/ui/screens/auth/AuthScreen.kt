@@ -29,17 +29,10 @@ import com.github.manager.ui.i18n.*
 
 @Composable
 fun AuthScreen(
-    onLoginSuccess: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showToken by remember { mutableStateOf(false) }
-
-    LaunchedEffect(uiState.isAuthenticated) {
-        if (uiState.isAuthenticated) {
-            onLoginSuccess()
-        }
-    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
