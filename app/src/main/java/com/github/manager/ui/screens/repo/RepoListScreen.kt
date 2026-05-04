@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -22,18 +23,24 @@ import com.github.manager.data.model.Repository
 @Composable
 fun RepoListScreen(
     onRepoClick: (owner: String, repo: String) -> Unit,
+    onAccountClick: () -> Unit,
     onLogout: () -> Unit,
     viewModel: RepoListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showCreateDialog by remember { mutableStateOf(false) }
-    var showLogoutDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable(
+                            role = Role.Button,
+                            onClick = onAccountClick
+                        )
+                    ) {
                         uiState.user?.avatarUrl?.let { url ->
                             AsyncImage(
                                 model = url,
@@ -51,8 +58,8 @@ fun RepoListScreen(
                     IconButton(onClick = { showCreateDialog = true }) {
                         Icon(Icons.Default.Add, contentDescription = "Create Repo")
                     }
-                    IconButton(onClick = { showLogoutDialog = true }) {
-                        Icon(Icons.Default.Logout, contentDescription = "Logout")
+                    IconButton(onClick = onAccountClick) {
+                        Icon(Icons.Default.AccountCircle, contentDescription = "Account")
                     }
                 }
             )
@@ -112,24 +119,6 @@ fun RepoListScreen(
             onCreate = { name, desc, isPrivate ->
                 viewModel.createRepo(name, desc, isPrivate)
                 showCreateDialog = false
-            }
-        )
-    }
-
-    if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Logout") },
-            text = { Text("Are you sure you want to logout?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.logout()
-                    showLogoutDialog = false
-                    onLogout()
-                }) { Text("Logout") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) { Text("Cancel") }
             }
         )
     }

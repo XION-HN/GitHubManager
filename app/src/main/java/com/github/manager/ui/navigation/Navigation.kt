@@ -7,15 +7,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.github.manager.ui.screens.account.AccountScreen
 import com.github.manager.ui.screens.auth.AuthScreen
 import com.github.manager.ui.screens.auth.AuthViewModel
 import com.github.manager.ui.screens.repo.RepoDetailScreen
 import com.github.manager.ui.screens.repo.RepoListScreen
-import com.github.manager.ui.screens.repo.RepoListViewModel
 
 object Routes {
     const val AUTH = "auth"
     const val REPO_LIST = "repoList"
+    const val ACCOUNT = "account"
     const val REPO_DETAIL = "repoDetail/{owner}/{repo}"
 
     fun repoDetail(owner: String, repo: String) = "repoDetail/$owner/$repo"
@@ -43,6 +44,21 @@ fun GitHubNavHost() {
                 onRepoClick = { owner, repo ->
                     navController.navigate(Routes.repoDetail(owner, repo))
                 },
+                onAccountClick = {
+                    navController.navigate(Routes.ACCOUNT)
+                },
+                onLogout = {
+                    authViewModel.logout()
+                    navController.navigate(Routes.AUTH) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(Routes.ACCOUNT) {
+            AccountScreen(
+                onBack = { navController.popBackStack() },
                 onLogout = {
                     authViewModel.logout()
                     navController.navigate(Routes.AUTH) {
