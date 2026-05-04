@@ -1,9 +1,15 @@
 package com.github.manager.ui.i18n
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 enum class LanguageMode {
@@ -111,8 +117,6 @@ object Strings {
     val noData = BilingualText("暂无数据", "No Data")
 }
 
-val LocalLanguageMode = staticCompositionLocalOf { LanguageMode.BILINGUAL }
-
 val languageModeState = mutableStateOf(LanguageMode.BILINGUAL)
 
 @Composable
@@ -128,17 +132,17 @@ fun bt(text: BilingualText): String {
 fun BilingualLabel(text: BilingualText) {
     when (languageModeState.value) {
         LanguageMode.CHINESE -> {
-            androidx.compose.material3.Text(text.zh)
+            Text(text.zh)
         }
         LanguageMode.ENGLISH -> {
-            androidx.compose.material3.Text(text.en)
+            Text(text.en)
         }
         LanguageMode.BILINGUAL -> {
-            androidx.compose.foundation.layout.Column {
-                androidx.compose.material3.Text(text.zh)
-                androidx.compose.material3.Text(
+            Column {
+                Text(text.zh)
+                Text(
                     text = text.en,
-                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Normal
                 )
@@ -151,17 +155,17 @@ fun BilingualLabel(text: BilingualText) {
 fun BilingualLabelSmall(text: BilingualText) {
     when (languageModeState.value) {
         LanguageMode.CHINESE -> {
-            androidx.compose.material3.Text(text.zh, style = androidx.compose.material3.MaterialTheme.typography.labelSmall)
+            Text(text.zh, style = MaterialTheme.typography.labelSmall)
         }
         LanguageMode.ENGLISH -> {
-            androidx.compose.material3.Text(text.en, style = androidx.compose.material3.MaterialTheme.typography.labelSmall)
+            Text(text.en, style = MaterialTheme.typography.labelSmall)
         }
         LanguageMode.BILINGUAL -> {
-            androidx.compose.foundation.layout.Column {
-                androidx.compose.material3.Text(text.zh, style = androidx.compose.material3.MaterialTheme.typography.labelSmall)
-                androidx.compose.material3.Text(
+            Column {
+                Text(text.zh, style = MaterialTheme.typography.labelSmall)
+                Text(
                     text = text.en,
-                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Normal
                 )
