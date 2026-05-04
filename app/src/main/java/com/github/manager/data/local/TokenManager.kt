@@ -6,11 +6,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.github.manager.data.model.CachedData
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -28,10 +26,7 @@ class TokenManager @Inject constructor(
         private val CACHE_REPOS_KEY = stringPreferencesKey("cache_repos")
         private val CACHE_STARRED_KEY = stringPreferencesKey("cache_starred")
         private val CACHE_PROFILE_KEY = stringPreferencesKey("cache_profile")
-        private const val CACHE_TTL = 5 * 60 * 1000L
     }
-
-    private val moshi: Moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
 
     val token: Flow<String?> = context.dataStore.data.map { it[TOKEN_KEY] }
     val username: Flow<String?> = context.dataStore.data.map { it[USERNAME_KEY] }
@@ -55,19 +50,16 @@ class TokenManager @Inject constructor(
         }
     }
 
-    suspend fun <T> saveCache(key: String, data: T, serializer: (T) -> String) {
+    suspend fun saveCache(key: String, value: String) {
         val cacheKey = stringPreferencesKey("cache_$key")
-        context.dataStore.edit { prefs ->
-            prefs[cacheKey] = serializer(data)
-        }
+        context.dataStore.edit { prefs -> prefs[cacheKey] = value }
     }
 
-    suspend fun <T> loadCache(key: String, deserializer: (String) -> T?): T? {
+    suspend fun loadCache(key: String): String? {
         val cacheKey = stringPreferencesKey("cache_$key")
-        val json = context.dataStore.data.map { it[cacheKey] }
         return try {
-            val value = kotlinx.coroutines.flow.firstOrNull(json) ?: return null
-            deserializer(value)
+            val prefs = context.dataStore.data.first()
+            prefs[cacheKey]
         } catch (e: Exception) {
             null
         }
@@ -80,15 +72,8 @@ class TokenManager @Inject constructor(
 
     suspend fun clearAllCache() {
         context.dataStore.edit { prefs ->
-            prefs.keys().filter { it.name.startsWith("cache_") }.forEach { prefs.remove(it) }
-        }
-    }
-
-    private suspend fun <T> firstOrNull(flow: Flow<T?>): T? {
-        return try {
-            kotlinx.coroutines.flow.first(flow)
-        } catch (e: Exception) {
-            null
+            val keysToRemove = listOf(CACHE_USER_KEY, CACHE_REPOS_KEY, CACHE_STARRED_KEY, CACHE_PROFILE_KEY)
+            keysToRemove.forEach { key -> prefs.remove(key) }
         }
     }
 }

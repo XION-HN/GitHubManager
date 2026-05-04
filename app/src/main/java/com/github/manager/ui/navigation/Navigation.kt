@@ -1,8 +1,5 @@
 package com.github.manager.ui.navigation
 
-import androidx.compose.animation.AnimatedContentTransitionDirection
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut

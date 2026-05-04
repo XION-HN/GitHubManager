@@ -147,7 +147,7 @@ fun AccountScreen(
                             }
                         )
 
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        Divider(modifier = Modifier.padding(vertical = 4.dp))
 
                         Spacer(modifier = Modifier.height(4.dp))
 

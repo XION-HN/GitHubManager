@@ -179,3 +179,16 @@ data class CachedData<T>(
     val data: T,
     val timestamp: Long = System.currentTimeMillis()
 )
+
+data class WorkflowDispatchRequest(
+    val ref: String
+)
+
+data class WorkflowListResponse(
+    @Json(name = "total_count") val totalCount: Int = 0,
+    @Json(name = "workflows") val workflows: List<Workflow> = emptyList()
+)
+
+data class WorkflowRunResponseWrapper(
+    @Json(name = "workflow_run") val workflowRun: WorkflowRun? = null
+)

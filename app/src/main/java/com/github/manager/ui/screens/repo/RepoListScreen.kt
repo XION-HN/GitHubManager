@@ -228,7 +228,7 @@ fun RepoItem(
                     modifier = Modifier.clickable(role = Role.Button, onClick = onStarClick)
                 ) {
                     Icon(
-                        Icons.Default.Star,
+                        Icons.Filled.Star,
                         contentDescription = bt(Strings.star),
                         modifier = Modifier.size(14.dp),
                         tint = if (isStarred) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurface

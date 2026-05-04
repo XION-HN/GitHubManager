@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -28,7 +29,7 @@ import com.github.manager.data.model.WorkflowRun
 import com.github.manager.ui.i18n.*
 import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun RepoDetailScreen(
     owner: String,
@@ -66,7 +67,7 @@ fun RepoDetailScreen(
                 actions = {
                     IconButton(onClick = { viewModel.toggleStar() }) {
                         Icon(
-                            imageVector = Icons.Default.Star,
+                            imageVector = Icons.Filled.Star,
                             contentDescription = bt(if (uiState.isStarred) Strings.unstar else Strings.star),
                             tint = if (uiState.isStarred) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurface
                         )
@@ -102,7 +103,7 @@ fun RepoDetailScreen(
                             }
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Filled.Star, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("${repoDetail.stargazersCount}", style = MaterialTheme.typography.bodySmall)
                         }
@@ -113,7 +114,7 @@ fun RepoDetailScreen(
                         }
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) {
+                            modifier = Modifier.clickable(role = Role.Button) {
                                 showBranchDialog = true
                             }
                         ) {

@@ -174,16 +174,3 @@ interface GitHubApiService {
         @Path("runId") runId: Long
     ): Response<Unit>
 }
-
-data class WorkflowListResponse(
-    @com.squareup.moshi.Json(name = "total_count") val totalCount: Int = 0,
-    @com.squareup.moshi.Json(name = "workflows") val workflows: List<Workflow> = emptyList()
-)
-
-data class WorkflowRunResponseWrapper(
-    @com.squareup.moshi.Json(name = "workflow_run") val workflowRun: WorkflowRun? = null
-)
-
-data class WorkflowDispatchRequest(
-    val ref: String
-)
