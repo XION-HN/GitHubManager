@@ -58,7 +58,7 @@ fun RepoListScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                         }
                         Column {
-                            Text(uiState.user?.login ?: getText(Strings.appName))
+                            Text(uiState.user?.login ?: getText(I18nStrings.appName))
                             if (languageModeState.value == LanguageMode.BILINGUAL && uiState.user != null) {
                                 Text(
                                     "My Repositories",
@@ -71,19 +71,19 @@ fun RepoListScreen(
                 },
                 actions = {
                     IconButton(onClick = { showCreateDialog = true }) {
-                        Icon(Icons.Default.Add, contentDescription = getText(Strings.createRepo))
+                        Icon(Icons.Default.Add, contentDescription = getText(I18nStrings.createRepo))
                     }
                     IconButton(onClick = onAccountClick) {
                         uiState.user?.avatarUrl?.let { url ->
                             AsyncImage(
                                 model = url,
-                                contentDescription = getText(Strings.account),
+                                contentDescription = getText(I18nStrings.account),
                                 modifier = Modifier
                                     .size(28.dp)
                                     .clip(CircleShape)
                             )
                         } ?: run {
-                            Icon(Icons.Default.AccountCircle, contentDescription = getText(Strings.account))
+                            Icon(Icons.Default.AccountCircle, contentDescription = getText(I18nStrings.account))
                         }
                     }
                 }
@@ -95,12 +95,12 @@ fun RepoListScreen(
                 Tab(
                     selected = !uiState.isStarredTab,
                     onClick = { viewModel.toggleTab(false) },
-                    text = { BilingualLabelSmall(Strings.myRepos) }
+                    text = { BilingualLabelSmall(I18nStrings.myRepos) }
                 )
                 Tab(
                     selected = uiState.isStarredTab,
                     onClick = { viewModel.toggleTab(true) },
-                    text = { BilingualLabelSmall(Strings.starred) }
+                    text = { BilingualLabelSmall(I18nStrings.starred) }
                 )
             }
 
@@ -113,7 +113,7 @@ fun RepoListScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(uiState.error!!, color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = viewModel::loadRepos) { Text(getText(Strings.retry)) }
+                        Button(onClick = viewModel::loadRepos) { Text(getText(I18nStrings.retry)) }
                     }
                 }
             } else {
@@ -192,7 +192,7 @@ fun RepoItem(
                     Spacer(modifier = Modifier.width(8.dp))
                     AssistChip(
                         onClick = {},
-                        label = { Text(getText(Strings.privateRepo), style = MaterialTheme.typography.labelSmall) },
+                        label = { Text(getText(I18nStrings.privateRepo), style = MaterialTheme.typography.labelSmall) },
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(14.dp)) }
                     )
                 }
@@ -229,7 +229,7 @@ fun RepoItem(
                 ) {
                     Icon(
                         Icons.Filled.Star,
-                        contentDescription = getText(Strings.star),
+                        contentDescription = getText(I18nStrings.star),
                         modifier = Modifier.size(14.dp),
                         tint = if (isStarred) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurface
                     )
@@ -276,25 +276,25 @@ fun CreateRepoDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { BilingualLabel(Strings.createRepository) },
+        title = { BilingualLabel(I18nStrings.createRepository) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text(getText(Strings.repositoryName)) },
+                    label = { Text(getText(I18nStrings.repositoryName)) },
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text(getText(Strings.descriptionOptional)) },
+                    label = { Text(getText(I18nStrings.descriptionOptional)) },
                     maxLines = 3
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(checked = isPrivate, onCheckedChange = { isPrivate = it })
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(getText(Strings.privateRepo))
+                    Text(getText(I18nStrings.privateRepo))
                 }
             }
         },
@@ -302,10 +302,10 @@ fun CreateRepoDialog(
             TextButton(
                 onClick = { onCreate(name, description.ifBlank { null }, isPrivate) },
                 enabled = name.isNotBlank()
-            ) { Text(getText(Strings.create)) }
+            ) { Text(getText(I18nStrings.create)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(getText(Strings.cancel)) }
+            TextButton(onClick = onDismiss) { Text(getText(I18nStrings.cancel)) }
         }
     )
 }

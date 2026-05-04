@@ -68,15 +68,15 @@ fun RepoDetailScreen(
                     IconButton(onClick = { viewModel.toggleStar() }) {
                         Icon(
                             imageVector = Icons.Filled.Star,
-                            contentDescription = getText(if (uiState.isStarred) Strings.unstar else Strings.star),
+                            contentDescription = getText(if (uiState.isStarred) I18nStrings.unstar else I18nStrings.star),
                             tint = if (uiState.isStarred) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurface
                         )
                     }
                     IconButton(onClick = { viewModel.forkRepo() }) {
-                        Icon(Icons.Default.CallSplit, contentDescription = getText(Strings.fork))
+                        Icon(Icons.Default.CallSplit, contentDescription = getText(I18nStrings.fork))
                     }
                     IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = getText(Strings.delete), tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Default.Delete, contentDescription = getText(I18nStrings.delete), tint = MaterialTheme.colorScheme.error)
                     }
                 }
             )
@@ -132,11 +132,11 @@ fun RepoDetailScreen(
             }
 
             val tabs = listOf(
-                getText(Strings.commits) to "Commits",
-                getText(Strings.issues) to "Issues",
-                getText(Strings.pullRequests) to "Pull Requests",
-                getText(Strings.branches) to "Branches",
-                getText(Strings.actions) to "Actions"
+                getText(I18nStrings.commits) to "Commits",
+                getText(I18nStrings.issues) to "Issues",
+                getText(I18nStrings.pullRequests) to "Pull Requests",
+                getText(I18nStrings.branches) to "Branches",
+                getText(I18nStrings.actions) to "Actions"
             )
             ScrollableTabRow(
                 selectedTabIndex = if (uiState.currentTab > 4) 0 else uiState.currentTab,
@@ -225,8 +225,8 @@ fun RepoDetailScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { BilingualLabel(Strings.deleteRepo) },
-            text = { Text(getText(Strings.deleteRepoConfirm)) },
+            title = { BilingualLabel(I18nStrings.deleteRepo) },
+            text = { Text(getText(I18nStrings.deleteRepoConfirm)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -235,10 +235,10 @@ fun RepoDetailScreen(
                         onBack()
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text(getText(Strings.delete)) }
+                ) { Text(getText(I18nStrings.delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text(getText(Strings.cancel)) }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(getText(I18nStrings.cancel)) }
             }
         )
     }
@@ -367,7 +367,7 @@ fun IssuesList(
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
         ) {
-            Icon(Icons.Default.Add, contentDescription = getText(Strings.createIssue))
+            Icon(Icons.Default.Add, contentDescription = getText(I18nStrings.createIssue))
         }
     }
 }
@@ -415,7 +415,7 @@ fun PullRequestsList(prs: List<PullRequest>) {
                         if (pr.draft) {
                             SuggestionChip(
                                 onClick = {},
-                                label = { Text(getText(Strings.draft), style = MaterialTheme.typography.labelSmall) }
+                                label = { Text(getText(I18nStrings.draft), style = MaterialTheme.typography.labelSmall) }
                             )
                         }
                     }
@@ -477,7 +477,7 @@ fun BranchesList(
                     if (branch.protected) {
                         Icon(
                             Icons.Default.Lock,
-                            contentDescription = getText(Strings.protected),
+                            contentDescription = getText(I18nStrings.protected),
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(14.dp)
                         )
@@ -498,7 +498,7 @@ fun BranchSelectDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { BilingualLabel(Strings.selectBranch) },
+        title = { BilingualLabel(I18nStrings.selectBranch) },
         text = {
             LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
                 items(branches) { branch ->
@@ -530,7 +530,7 @@ fun BranchSelectDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text(getText(Strings.cancel)) }
+            TextButton(onClick = onDismiss) { Text(getText(I18nStrings.cancel)) }
         }
     )
 }
@@ -555,20 +555,20 @@ fun ActionsTab(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                BilingualLabelSmall(Strings.actions)
+                BilingualLabelSmall(I18nStrings.actions)
                 if (isMonitoring) {
                     Spacer(modifier = Modifier.width(8.dp))
                     CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 1.dp)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        getText(Strings.monitoring),
+                        getText(I18nStrings.monitoring),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
             IconButton(onClick = onRefresh) {
-                Icon(Icons.Default.Refresh, contentDescription = getText(Strings.refresh))
+                Icon(Icons.Default.Refresh, contentDescription = getText(I18nStrings.refresh))
             }
         }
 
@@ -584,7 +584,7 @@ fun ActionsTab(
                             .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        BilingualLabelSmall(Strings.noRuns)
+                        BilingualLabelSmall(I18nStrings.noRuns)
                     }
                 }
             }
@@ -620,13 +620,13 @@ fun WorkflowRunCard(
     }
 
     val statusText = when (run.conclusion) {
-        "success" -> getText(Strings.success)
-        "failure" -> getText(Strings.failed)
-        "cancelled" -> getText(Strings.cancelled)
+        "success" -> getText(I18nStrings.success)
+        "failure" -> getText(I18nStrings.failed)
+        "cancelled" -> getText(I18nStrings.cancelled)
         null -> when (run.status) {
-            "in_progress" -> getText(Strings.inProgress)
-            "queued" -> getText(Strings.queued)
-            "waiting" -> getText(Strings.waiting)
+            "in_progress" -> getText(I18nStrings.inProgress)
+            "queued" -> getText(I18nStrings.queued)
+            "waiting" -> getText(I18nStrings.waiting)
             else -> run.status
         }
         else -> run.conclusion ?: ""
@@ -655,7 +655,7 @@ fun WorkflowRunCard(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        run.name.ifBlank { "${getText(Strings.runNumber)}${run.id}" },
+                        run.name.ifBlank { "${getText(I18nStrings.runNumber)}${run.id}" },
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -665,11 +665,11 @@ fun WorkflowRunCard(
                 Row {
                     if (run.status == "in_progress" || run.status == "queued" || run.status == "waiting") {
                         IconButton(onClick = onCancel, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Stop, contentDescription = getText(Strings.cancelRun), modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Stop, contentDescription = getText(I18nStrings.cancelRun), modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error)
                         }
                     } else {
                         IconButton(onClick = onReRun, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Replay, contentDescription = getText(Strings.reRun), modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Replay, contentDescription = getText(I18nStrings.reRun), modifier = Modifier.size(14.dp))
                         }
                     }
                 }
@@ -720,19 +720,19 @@ fun CreateIssueDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { BilingualLabel(Strings.createIssue) },
+        title = { BilingualLabel(I18nStrings.createIssue) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text(getText(Strings.title)) },
+                    label = { Text(getText(I18nStrings.title)) },
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = body,
                     onValueChange = { body = it },
-                    label = { Text(getText(Strings.bodyOptional)) },
+                    label = { Text(getText(I18nStrings.bodyOptional)) },
                     maxLines = 5
                 )
             }
@@ -741,10 +741,10 @@ fun CreateIssueDialog(
             TextButton(
                 onClick = { onCreate(title, body.ifBlank { null }) },
                 enabled = title.isNotBlank()
-            ) { Text(getText(Strings.create)) }
+            ) { Text(getText(I18nStrings.create)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(getText(Strings.cancel)) }
+            TextButton(onClick = onDismiss) { Text(getText(I18nStrings.cancel)) }
         }
     )
 }

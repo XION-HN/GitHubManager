@@ -62,7 +62,7 @@ fun AuthScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = getText(Strings.appName),
+                text = getText(I18nStrings.appName),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -70,7 +70,7 @@ fun AuthScreen(
 
             if (languageModeState.value == LanguageMode.BILINGUAL) {
                 Text(
-                    text = Strings.appName.en,
+                    text = I18nStrings.appName.en,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Normal
@@ -81,23 +81,23 @@ fun AuthScreen(
 
             when (languageModeState.value) {
                 LanguageMode.CHINESE -> Text(
-                    Strings.signInWithToken.zh,
+                    I18nStrings.signInWithToken.zh,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 LanguageMode.ENGLISH -> Text(
-                    Strings.signInWithToken.en,
+                    I18nStrings.signInWithToken.en,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 LanguageMode.BILINGUAL -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        Strings.signInWithToken.zh,
+                        I18nStrings.signInWithToken.zh,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        Strings.signInWithToken.en,
+                        I18nStrings.signInWithToken.en,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         fontSize = 11.sp
                     )
@@ -109,7 +109,7 @@ fun AuthScreen(
             OutlinedTextField(
                 value = uiState.token,
                 onValueChange = viewModel::onTokenChanged,
-                label = { Text(getText(Strings.personalAccessToken)) },
+                label = { Text(getText(I18nStrings.personalAccessToken)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
@@ -117,7 +117,7 @@ fun AuthScreen(
                     IconButton(onClick = { showToken = !showToken }) {
                         Icon(
                             imageVector = if (showToken) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = getText(if (showToken) Strings.hideToken else Strings.showToken)
+                            contentDescription = getText(if (showToken) I18nStrings.hideToken else I18nStrings.showToken)
                         )
                     }
                 },
@@ -161,31 +161,31 @@ fun AuthScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text(getText(Strings.signIn))
+                Text(getText(I18nStrings.signIn))
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             when (languageModeState.value) {
                 LanguageMode.CHINESE -> Text(
-                    Strings.tokenHelp.zh,
+                    I18nStrings.tokenHelp.zh,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 LanguageMode.ENGLISH -> Text(
-                    Strings.tokenHelp.en,
+                    I18nStrings.tokenHelp.en,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 LanguageMode.BILINGUAL -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        Strings.tokenHelp.zh,
+                        I18nStrings.tokenHelp.zh,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        Strings.tokenHelp.en,
+                        I18nStrings.tokenHelp.en,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         fontSize = 10.sp
                     )

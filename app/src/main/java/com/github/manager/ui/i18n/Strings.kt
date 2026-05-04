@@ -8,7 +8,7 @@ enum class LanguageMode {
 
 data class BilingualText(val zh: String, val en: String)
 
-object Strings {
+object I18nStrings {
     val appName = BilingualText("GitHub 管理器", "GitHub Manager")
     val signIn = BilingualText("登录", "Sign In")
     val signInWithToken = BilingualText("使用个人访问令牌登录", "Sign in with your Personal Access Token")
@@ -63,7 +63,7 @@ object Strings {
     )
     val switchAccount = BilingualText("切换账号", "Switch Account")
     val newPersonalAccessToken = BilingualText("新的个人访问令牌", "New Personal Access Token")
-    val switch = BilingualText("切换", "Switch")
+    val switchAccountAction = BilingualText("切换", "Switch")
 
     val githubProfile = BilingualText("GitHub 主页", "GitHub Profile")
     val memberSince = BilingualText("注册时间", "Member Since")

@@ -38,7 +38,7 @@ fun AccountScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { BilingualLabel(Strings.account) },
+                title = { BilingualLabel(I18nStrings.account) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -46,7 +46,7 @@ fun AccountScreen(
                 },
                 actions = {
                     IconButton(onClick = { showLanguageDialog = true }) {
-                        Icon(Icons.Default.Language, contentDescription = getText(Strings.language))
+                        Icon(Icons.Default.Language, contentDescription = getText(I18nStrings.language))
                     }
                 }
             )
@@ -63,7 +63,7 @@ fun AccountScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(uiState.error!!, color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = viewModel::loadProfile) { Text(getText(Strings.retry)) }
+                        Button(onClick = viewModel::loadProfile) { Text(getText(I18nStrings.retry)) }
                     }
                 }
             }
@@ -115,10 +115,10 @@ fun AccountScreen(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        StatItem(Strings.repos, user.publicRepos)
-                        StatItem(Strings.gists, user.publicGists)
-                        StatItem(Strings.followers, user.followers)
-                        StatItem(Strings.following, user.following)
+                        StatItem(I18nStrings.repos, user.publicRepos)
+                        StatItem(I18nStrings.gists, user.publicGists)
+                        StatItem(I18nStrings.followers, user.followers)
+                        StatItem(I18nStrings.following, user.following)
                     }
 
                     Spacer(modifier = Modifier.height(20.dp))
@@ -126,7 +126,7 @@ fun AccountScreen(
                     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                         if (user.htmlUrl.isNotBlank()) {
                             ListItem(
-                                headlineContent = { BilingualLabelSmall(Strings.githubProfile) },
+                                headlineContent = { BilingualLabelSmall(I18nStrings.githubProfile) },
                                 leadingContent = {
                                     Icon(Icons.Default.OpenInBrowser, contentDescription = null)
                                 },
@@ -138,7 +138,7 @@ fun AccountScreen(
                         }
 
                         ListItem(
-                            headlineContent = { BilingualLabelSmall(Strings.memberSince) },
+                            headlineContent = { BilingualLabelSmall(I18nStrings.memberSince) },
                             leadingContent = {
                                 Icon(Icons.Default.CalendarToday, contentDescription = null)
                             },
@@ -157,7 +157,7 @@ fun AccountScreen(
                         ) {
                             Icon(Icons.Default.Language, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(getText(Strings.language))
+                            Text(getText(I18nStrings.language))
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -168,7 +168,7 @@ fun AccountScreen(
                         ) {
                             Icon(Icons.Default.SwapHoriz, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(getText(Strings.switchAccount))
+                            Text(getText(I18nStrings.switchAccount))
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -182,7 +182,7 @@ fun AccountScreen(
                         ) {
                             Icon(Icons.Default.Logout, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(getText(Strings.logout))
+                            Text(getText(I18nStrings.logout))
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -195,8 +195,8 @@ fun AccountScreen(
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
-            title = { BilingualLabel(Strings.logout) },
-            text = { Text(getText(Strings.logoutConfirm)) },
+            title = { BilingualLabel(I18nStrings.logout) },
+            text = { Text(getText(I18nStrings.logoutConfirm)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -205,10 +205,10 @@ fun AccountScreen(
                         onLogout()
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text(getText(Strings.logout)) }
+                ) { Text(getText(I18nStrings.logout)) }
             },
             dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) { Text(getText(Strings.cancel)) }
+                TextButton(onClick = { showLogoutDialog = false }) { Text(getText(I18nStrings.cancel)) }
             }
         )
     }
@@ -216,12 +216,12 @@ fun AccountScreen(
     if (showSwitchTokenDialog) {
         AlertDialog(
             onDismissRequest = { showSwitchTokenDialog = false },
-            title = { BilingualLabel(Strings.switchAccount) },
+            title = { BilingualLabel(I18nStrings.switchAccount) },
             text = {
                 OutlinedTextField(
                     value = newToken,
                     onValueChange = { newToken = it },
-                    label = { Text(getText(Strings.newPersonalAccessToken)) },
+                    label = { Text(getText(I18nStrings.newPersonalAccessToken)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation()
                 )
@@ -236,13 +236,13 @@ fun AccountScreen(
                         }
                     },
                     enabled = newToken.isNotBlank()
-                ) { Text(getText(Strings.switch)) }
+                ) { Text(getText(I18nStrings.switchAccountAction)) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showSwitchTokenDialog = false
                     newToken = ""
-                }) { Text(getText(Strings.cancel)) }
+                }) { Text(getText(I18nStrings.cancel)) }
             }
         )
     }
@@ -250,22 +250,22 @@ fun AccountScreen(
     if (showLanguageDialog) {
         AlertDialog(
             onDismissRequest = { showLanguageDialog = false },
-            title = { BilingualLabel(Strings.language) },
+            title = { BilingualLabel(I18nStrings.language) },
             text = {
                 Column {
                     LanguageOption(
-                        label = Strings.bilingual.zh,
-                        subtitle = Strings.bilingual.en,
+                        label = I18nStrings.bilingual.zh,
+                        subtitle = I18nStrings.bilingual.en,
                         selected = languageModeState.value == LanguageMode.BILINGUAL,
                         onClick = { languageModeState.value = LanguageMode.BILINGUAL }
                     )
                     LanguageOption(
-                        label = Strings.chinese.zh,
+                        label = I18nStrings.chinese.zh,
                         selected = languageModeState.value == LanguageMode.CHINESE,
                         onClick = { languageModeState.value = LanguageMode.CHINESE }
                     )
                     LanguageOption(
-                        label = Strings.english.en,
+                        label = I18nStrings.english.en,
                         selected = languageModeState.value == LanguageMode.ENGLISH,
                         onClick = { languageModeState.value = LanguageMode.ENGLISH }
                     )
