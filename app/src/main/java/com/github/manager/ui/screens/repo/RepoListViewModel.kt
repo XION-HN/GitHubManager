@@ -18,7 +18,8 @@ data class RepoListUiState(
     val repos: List<Repository> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val isStarredTab: Boolean = false
+    val isStarredTab: Boolean = false,
+    val starredRepos: Set<String> = emptySet()
 )
 
 @HiltViewModel
@@ -33,6 +34,7 @@ class RepoListViewModel @Inject constructor(
     init {
         loadProfile()
         loadRepos()
+        loadStarredSet()
     }
 
     fun loadProfile() {
@@ -40,6 +42,17 @@ class RepoListViewModel @Inject constructor(
             gitHubRepository.getAuthenticatedUser()
                 .onSuccess { user ->
                     _uiState.value = _uiState.value.copy(user = user)
+                }
+        }
+    }
+
+    private fun loadStarredSet() {
+        viewModelScope.launch {
+            gitHubRepository.getStarredRepos()
+                .onSuccess { repos ->
+                    _uiState.value = _uiState.value.copy(
+                        starredRepos = repos.map { it.fullName }.toSet()
+                    )
                 }
         }
     }
@@ -70,14 +83,26 @@ class RepoListViewModel @Inject constructor(
     fun starRepo(owner: String, repo: String) {
         viewModelScope.launch {
             gitHubRepository.starRepository(owner, repo)
-            loadRepos()
+                .onSuccess {
+                    val fullName = "$owner/$repo"
+                    _uiState.value = _uiState.value.copy(
+                        starredRepos = _uiState.value.starredRepos + fullName
+                    )
+                    if (_uiState.value.isStarredTab) loadRepos()
+                }
         }
     }
 
     fun unstarRepo(owner: String, repo: String) {
         viewModelScope.launch {
             gitHubRepository.unstarRepository(owner, repo)
-            loadRepos()
+                .onSuccess {
+                    val fullName = "$owner/$repo"
+                    _uiState.value = _uiState.value.copy(
+                        starredRepos = _uiState.value.starredRepos - fullName
+                    )
+                    if (_uiState.value.isStarredTab) loadRepos()
+                }
         }
     }
 

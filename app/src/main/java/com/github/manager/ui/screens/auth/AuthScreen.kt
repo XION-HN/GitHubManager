@@ -1,5 +1,10 @@
 package com.github.manager.ui.screens.auth
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,12 +15,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.unit.sp
+import com.github.manager.ui.i18n.*
 
 @Composable
 fun AuthScreen(
@@ -42,26 +49,64 @@ fun AuthScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
-                text = "GitHub Manager",
+                text = bt(Strings.appName),
                 style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
 
+            if (languageModeState.value == LanguageMode.BILINGUAL) {
+                Text(
+                    text = Strings.appName.en,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Normal
+                )
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = "Sign in with your Personal Access Token",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            when (languageModeState.value) {
+                LanguageMode.CHINESE -> Text(
+                    Strings.signInWithToken.zh,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LanguageMode.ENGLISH -> Text(
+                    Strings.signInWithToken.en,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LanguageMode.BILINGUAL -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        Strings.signInWithToken.zh,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        Strings.signInWithToken.en,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        fontSize = 11.sp
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 
             OutlinedTextField(
                 value = uiState.token,
                 onValueChange = viewModel::onTokenChanged,
-                label = { Text("Personal Access Token") },
+                label = { Text(bt(Strings.personalAccessToken)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
@@ -69,7 +114,7 @@ fun AuthScreen(
                     IconButton(onClick = { showToken = !showToken }) {
                         Icon(
                             imageVector = if (showToken) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = if (showToken) "Hide token" else "Show token"
+                            contentDescription = bt(if (showToken) Strings.hideToken else Strings.showToken)
                         )
                     }
                 },
@@ -83,13 +128,19 @@ fun AuthScreen(
                 isError = uiState.error != null
             )
 
-            uiState.error?.let { error ->
-                Text(
-                    text = error,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+            AnimatedVisibility(
+                visible = uiState.error != null,
+                enter = fadeIn() + slideInVertically(),
+                exit = fadeOut() + slideOutVertically()
+            ) {
+                uiState.error?.let { error ->
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -107,16 +158,36 @@ fun AuthScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text("Sign In")
+                Text(bt(Strings.signIn))
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Go to Settings > Developer settings > Personal access tokens\nto generate a new token with the required scopes.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            when (languageModeState.value) {
+                LanguageMode.CHINESE -> Text(
+                    Strings.tokenHelp.zh,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LanguageMode.ENGLISH -> Text(
+                    Strings.tokenHelp.en,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LanguageMode.BILINGUAL -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        Strings.tokenHelp.zh,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        Strings.tokenHelp.en,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        fontSize = 10.sp
+                    )
+                }
+            }
         }
     }
 }

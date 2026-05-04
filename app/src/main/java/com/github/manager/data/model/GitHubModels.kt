@@ -130,3 +130,52 @@ data class CreateIssueRequest(
     val body: String? = null,
     val labels: List<String>? = null
 )
+
+data class Branch(
+    val name: String,
+    val commit: BranchCommit,
+    val protected: Boolean = false
+)
+
+data class BranchCommit(
+    val sha: String,
+    val url: String = ""
+)
+
+data class Workflow(
+    val id: Long,
+    val name: String,
+    val path: String = "",
+    val state: String = "active",
+    @Json(name = "created_at") val createdAt: String = "",
+    @Json(name = "updated_at") val updatedAt: String = ""
+)
+
+data class WorkflowRunsResponse(
+    @Json(name = "total_count") val totalCount: Int = 0,
+    @Json(name = "workflow_runs") val workflowRuns: List<WorkflowRun> = emptyList()
+)
+
+data class WorkflowRun(
+    val id: Long,
+    val name: String = "",
+    @Json(name = "head_branch") val headBranch: String = "",
+    @Json(name = "head_sha") val headSha: String = "",
+    val status: String = "",
+    val conclusion: String? = null,
+    @Json(name = "workflow_id") val workflowId: Long = 0,
+    val url: String = "",
+    @Json(name = "html_url") val htmlUrl: String = "",
+    @Json(name = "created_at") val createdAt: String = "",
+    @Json(name = "updated_at") val updatedAt: String = "",
+    @Json(name = "run_started_at") val runStartedAt: String? = null
+)
+
+data class CheckStarredResponse(
+    val starred: Boolean = false
+)
+
+data class CachedData<T>(
+    val data: T,
+    val timestamp: Long = System.currentTimeMillis()
+)

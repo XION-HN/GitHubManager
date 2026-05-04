@@ -1,6 +1,17 @@
 package com.github.manager.ui.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionDirection
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -22,12 +33,50 @@ object Routes {
     fun repoDetail(owner: String, repo: String) = "repoDetail/$owner/$repo"
 }
 
+private const val ANIM_DURATION = 350
+
 @Composable
 fun GitHubNavHost() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = hiltViewModel()
+    val uiState by authViewModel.uiState.collectAsState()
 
-    NavHost(navController = navController, startDestination = Routes.AUTH) {
+    LaunchedEffect(uiState.isAuthenticated) {
+        if (!uiState.isAuthenticated && navController.currentDestination?.route != Routes.AUTH) {
+            navController.navigate(Routes.AUTH) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
+    NavHost(
+        navController = navController,
+        startDestination = Routes.AUTH,
+        enterTransition = {
+            slideInHorizontally(
+                initialOffsetX = { it / 3 },
+                animationSpec = tween(ANIM_DURATION)
+            ) + fadeIn(animationSpec = tween(ANIM_DURATION))
+        },
+        exitTransition = {
+            slideOutHorizontally(
+                targetOffsetX = { -it / 3 },
+                animationSpec = tween(ANIM_DURATION)
+            ) + fadeOut(animationSpec = tween(ANIM_DURATION))
+        },
+        popEnterTransition = {
+            slideInHorizontally(
+                initialOffsetX = { -it / 3 },
+                animationSpec = tween(ANIM_DURATION)
+            ) + fadeIn(animationSpec = tween(ANIM_DURATION))
+        },
+        popExitTransition = {
+            slideOutHorizontally(
+                targetOffsetX = { it / 3 },
+                animationSpec = tween(ANIM_DURATION)
+            ) + fadeOut(animationSpec = tween(ANIM_DURATION))
+        }
+    ) {
         composable(Routes.AUTH) {
             AuthScreen(
                 onLoginSuccess = {

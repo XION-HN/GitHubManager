@@ -51,6 +51,12 @@ interface GitHubApiService {
         @Path("repo") repo: String
     ): Response<Unit>
 
+    @GET("user/starred/{owner}/{repo}")
+    suspend fun checkStarred(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String
+    ): Response<Unit>
+
     @GET("user/starred")
     suspend fun getStarredRepos(
         @Query("per_page") perPage: Int = 30,
@@ -67,6 +73,7 @@ interface GitHubApiService {
     suspend fun getCommits(
         @Path("owner") owner: String,
         @Path("repo") repo: String,
+        @Query("sha") sha: String? = null,
         @Query("per_page") perPage: Int = 30,
         @Query("page") page: Int = 1
     ): List<Commit>
@@ -116,4 +123,67 @@ interface GitHubApiService {
         @Path("repo") repo: String,
         @Path("number") number: Int
     ): PullRequest
+
+    @GET("repos/{owner}/{repo}/branches")
+    suspend fun getBranches(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Query("per_page") perPage: Int = 100
+    ): List<Branch>
+
+    @GET("repos/{owner}/{repo}/actions/workflows")
+    suspend fun getWorkflows(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String
+    ): WorkflowListResponse
+
+    @GET("repos/{owner}/{repo}/actions/runs")
+    suspend fun getWorkflowRuns(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Query("per_page") perPage: Int = 20,
+        @Query("page") page: Int = 1
+    ): WorkflowRunsResponse
+
+    @GET("repos/{owner}/{repo}/actions/runs/{runId}")
+    suspend fun getWorkflowRun(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("runId") runId: Long
+    ): WorkflowRunResponseWrapper
+
+    @POST("repos/{owner}/{repo}/actions/workflows/{workflowId}/dispatches")
+    suspend fun dispatchWorkflow(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("workflowId") workflowId: Long,
+        @Body request: WorkflowDispatchRequest
+    ): Response<Unit>
+
+    @POST("repos/{owner}/{repo}/actions/runs/{runId}/rerun")
+    suspend fun reRunWorkflow(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("runId") runId: Long
+    ): Response<Unit>
+
+    @POST("repos/{owner}/{repo}/actions/runs/{runId}/cancel")
+    suspend fun cancelWorkflowRun(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("runId") runId: Long
+    ): Response<Unit>
 }
+
+data class WorkflowListResponse(
+    @com.squareup.moshi.Json(name = "total_count") val totalCount: Int = 0,
+    @com.squareup.moshi.Json(name = "workflows") val workflows: List<Workflow> = emptyList()
+)
+
+data class WorkflowRunResponseWrapper(
+    @com.squareup.moshi.Json(name = "workflow_run") val workflowRun: WorkflowRun? = null
+)
+
+data class WorkflowDispatchRequest(
+    val ref: String
+)

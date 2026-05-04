@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.manager.data.model.*
 import com.github.manager.data.repository.GitHubRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,9 +17,15 @@ data class RepoDetailUiState(
     val commits: List<Commit> = emptyList(),
     val issues: List<Issue> = emptyList(),
     val pullRequests: List<PullRequest> = emptyList(),
+    val branches: List<Branch> = emptyList(),
+    val workflows: List<Workflow> = emptyList(),
+    val workflowRuns: List<WorkflowRun> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val currentTab: Int = 0
+    val currentTab: Int = 0,
+    val currentBranch: String? = null,
+    val isStarred: Boolean = false,
+    val isMonitoringActions: Boolean = false
 )
 
 @HiltViewModel
@@ -36,6 +43,7 @@ class RepoDetailViewModel @Inject constructor(
         this.owner = owner
         this.repoName = repo
         loadRepo()
+        checkStarred()
         loadCommits()
     }
 
@@ -43,15 +51,49 @@ class RepoDetailViewModel @Inject constructor(
         viewModelScope.launch {
             gitHubRepository.getRepository(owner, repoName)
                 .onSuccess { repo ->
-                    _uiState.value = _uiState.value.copy(repo = repo)
+                    _uiState.value = _uiState.value.copy(
+                        repo = repo,
+                        currentBranch = _uiState.value.currentBranch ?: repo.defaultBranch
+                    )
                 }
+        }
+    }
+
+    fun checkStarred() {
+        viewModelScope.launch {
+            gitHubRepository.checkStarred(owner, repoName)
+                .onSuccess { starred ->
+                    _uiState.value = _uiState.value.copy(isStarred = starred)
+                }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(isStarred = false)
+                }
+        }
+    }
+
+    fun toggleStar() {
+        viewModelScope.launch {
+            if (_uiState.value.isStarred) {
+                gitHubRepository.unstarRepository(owner, repoName)
+                    .onSuccess {
+                        _uiState.value = _uiState.value.copy(isStarred = false)
+                        loadRepo()
+                    }
+            } else {
+                gitHubRepository.starRepository(owner, repoName)
+                    .onSuccess {
+                        _uiState.value = _uiState.value.copy(isStarred = true)
+                        loadRepo()
+                    }
+            }
         }
     }
 
     fun loadCommits() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            gitHubRepository.getCommits(owner, repoName)
+            val branch = _uiState.value.currentBranch
+            gitHubRepository.getCommits(owner, repoName, branch = branch)
                 .onSuccess { commits ->
                     _uiState.value = _uiState.value.copy(commits = commits, isLoading = false)
                 }
@@ -88,12 +130,91 @@ class RepoDetailViewModel @Inject constructor(
         }
     }
 
+    fun loadBranches() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            gitHubRepository.getBranches(owner, repoName)
+                .onSuccess { branches ->
+                    _uiState.value = _uiState.value.copy(branches = branches, isLoading = false)
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                }
+        }
+    }
+
+    fun switchBranch(branch: String) {
+        _uiState.value = _uiState.value.copy(currentBranch = branch)
+        loadCommits()
+    }
+
+    fun loadWorkflows() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            gitHubRepository.getWorkflows(owner, repoName)
+                .onSuccess { workflows ->
+                    _uiState.value = _uiState.value.copy(workflows = workflows, isLoading = false)
+                    if (workflows.isNotEmpty()) {
+                        loadWorkflowRuns()
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                }
+        }
+    }
+
+    fun loadWorkflowRuns() {
+        viewModelScope.launch {
+            gitHubRepository.getWorkflowRuns(owner, repoName)
+                .onSuccess { response ->
+                    val hasActive = response.workflowRuns.any { it.status == "in_progress" || it.status == "queued" || it.status == "waiting" }
+                    _uiState.value = _uiState.value.copy(
+                        workflowRuns = response.workflowRuns,
+                        isMonitoringActions = hasActive
+                    )
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(error = e.message)
+                }
+        }
+    }
+
+    fun dispatchWorkflow(workflowId: Long, ref: String) {
+        viewModelScope.launch {
+            gitHubRepository.dispatchWorkflow(owner, repoName, workflowId, ref)
+            delay(2000)
+            loadWorkflowRuns()
+        }
+    }
+
+    fun reRunWorkflow(runId: Long) {
+        viewModelScope.launch {
+            gitHubRepository.reRunWorkflow(owner, repoName, runId)
+            delay(2000)
+            loadWorkflowRuns()
+        }
+    }
+
+    fun cancelWorkflowRun(runId: Long) {
+        viewModelScope.launch {
+            gitHubRepository.cancelWorkflowRun(owner, repoName, runId)
+            delay(1000)
+            loadWorkflowRuns()
+        }
+    }
+
     fun onTabChanged(index: Int) {
         _uiState.value = _uiState.value.copy(currentTab = index)
         when (index) {
             0 -> loadCommits()
             1 -> loadIssues()
             2 -> loadPullRequests()
+            3 -> loadBranches()
+            4 -> {
+                loadWorkflows()
+                loadWorkflowRuns()
+            }
         }
     }
 

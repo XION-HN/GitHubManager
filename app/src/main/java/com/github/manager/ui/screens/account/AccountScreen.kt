@@ -1,5 +1,7 @@
 package com.github.manager.ui.screens.account
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -11,11 +13,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.github.manager.ui.i18n.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,20 +32,26 @@ fun AccountScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showSwitchTokenDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
     var newToken by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
-        TopAppBar(
-            title = { Text("Account") },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+            TopAppBar(
+                title = { BilingualLabel(Strings.account) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showLanguageDialog = true }) {
+                        Icon(Icons.Default.Language, contentDescription = bt(Strings.language))
+                    }
                 }
-            }
-        )
-    }
-) { padding ->
+            )
+        }
+    ) { padding ->
         when {
             uiState.isLoading -> {
                 Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
@@ -52,7 +63,7 @@ fun AccountScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(uiState.error!!, color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = viewModel::loadProfile) { Text("Retry") }
+                        Button(onClick = viewModel::loadProfile) { Text(bt(Strings.retry)) }
                     }
                 }
             }
@@ -104,10 +115,10 @@ fun AccountScreen(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        StatItem("Repos", user.publicRepos)
-                        StatItem("Gists", user.publicGists)
-                        StatItem("Followers", user.followers)
-                        StatItem("Following", user.following)
+                        StatItem(Strings.repos, user.publicRepos)
+                        StatItem(Strings.gists, user.publicGists)
+                        StatItem(Strings.followers, user.followers)
+                        StatItem(Strings.following, user.following)
                     }
 
                     Spacer(modifier = Modifier.height(20.dp))
@@ -115,7 +126,7 @@ fun AccountScreen(
                     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                         if (user.htmlUrl.isNotBlank()) {
                             ListItem(
-                                headlineContent = { Text("GitHub Profile") },
+                                headlineContent = { BilingualLabelSmall(Strings.githubProfile) },
                                 leadingContent = {
                                     Icon(Icons.Default.OpenInBrowser, contentDescription = null)
                                 },
@@ -127,7 +138,7 @@ fun AccountScreen(
                         }
 
                         ListItem(
-                            headlineContent = { Text("Member Since") },
+                            headlineContent = { BilingualLabelSmall(Strings.memberSince) },
                             leadingContent = {
                                 Icon(Icons.Default.CalendarToday, contentDescription = null)
                             },
@@ -136,9 +147,20 @@ fun AccountScreen(
                             }
                         )
 
-        Divider(modifier = Modifier.padding(vertical = 4.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        OutlinedButton(
+                            onClick = { showLanguageDialog = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Language, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(bt(Strings.language))
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         OutlinedButton(
                             onClick = { showSwitchTokenDialog = true },
@@ -146,7 +168,7 @@ fun AccountScreen(
                         ) {
                             Icon(Icons.Default.SwapHoriz, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Switch Account")
+                            Text(bt(Strings.switchAccount))
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -160,7 +182,7 @@ fun AccountScreen(
                         ) {
                             Icon(Icons.Default.Logout, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Logout")
+                            Text(bt(Strings.logout))
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -173,8 +195,8 @@ fun AccountScreen(
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Logout") },
-            text = { Text("Are you sure you want to logout? You will need to enter your token again.") },
+            title = { BilingualLabel(Strings.logout) },
+            text = { Text(bt(Strings.logoutConfirm)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -183,10 +205,10 @@ fun AccountScreen(
                         onLogout()
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text("Logout") }
+                ) { Text(bt(Strings.logout)) }
             },
             dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showLogoutDialog = false }) { Text(bt(Strings.cancel)) }
             }
         )
     }
@@ -194,12 +216,12 @@ fun AccountScreen(
     if (showSwitchTokenDialog) {
         AlertDialog(
             onDismissRequest = { showSwitchTokenDialog = false },
-            title = { Text("Switch Account") },
+            title = { BilingualLabel(Strings.switchAccount) },
             text = {
                 OutlinedTextField(
                     value = newToken,
                     onValueChange = { newToken = it },
-                    label = { Text("New Personal Access Token") },
+                    label = { Text(bt(Strings.newPersonalAccessToken)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation()
                 )
@@ -214,30 +236,84 @@ fun AccountScreen(
                         }
                     },
                     enabled = newToken.isNotBlank()
-                ) { Text("Switch") }
+                ) { Text(bt(Strings.switch)) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showSwitchTokenDialog = false
                     newToken = ""
-                }) { Text("Cancel") }
+                }) { Text(bt(Strings.cancel)) }
+            }
+        )
+    }
+
+    if (showLanguageDialog) {
+        AlertDialog(
+            onDismissRequest = { showLanguageDialog = false },
+            title = { BilingualLabel(Strings.language) },
+            text = {
+                Column {
+                    LanguageOption(
+                        label = Strings.bilingual.zh,
+                        subtitle = Strings.bilingual.en,
+                        selected = languageModeState.value == LanguageMode.BILINGUAL,
+                        onClick = { languageModeState.value = LanguageMode.BILINGUAL }
+                    )
+                    LanguageOption(
+                        label = Strings.chinese.zh,
+                        selected = languageModeState.value == LanguageMode.CHINESE,
+                        onClick = { languageModeState.value = LanguageMode.CHINESE }
+                    )
+                    LanguageOption(
+                        label = Strings.english.en,
+                        selected = languageModeState.value == LanguageMode.ENGLISH,
+                        onClick = { languageModeState.value = LanguageMode.ENGLISH }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLanguageDialog = false }) { Text("OK") }
             }
         )
     }
 }
 
 @Composable
-private fun StatItem(label: String, value: Int) {
+private fun LanguageOption(
+    label: String,
+    subtitle: String? = null,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(label, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+            subtitle?.let {
+                Text(
+                    it,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    fontSize = 11.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatItem(text: BilingualText, value: Int) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value.toString(),
             style = MaterialTheme.typography.titleLarge
         )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        BilingualLabelSmall(text)
     }
 }
 

@@ -1,5 +1,7 @@
 package com.github.manager.ui.screens.repo
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,12 +14,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.github.manager.data.model.Repository
+import com.github.manager.ui.i18n.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,15 +57,34 @@ fun RepoListScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
-                        Text(uiState.user?.login ?: "GitHub Manager")
+                        Column {
+                            Text(uiState.user?.login ?: bt(Strings.appName))
+                            if (languageModeState.value == LanguageMode.BILINGUAL && uiState.user != null) {
+                                Text(
+                                    "My Repositories",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
                     }
                 },
                 actions = {
                     IconButton(onClick = { showCreateDialog = true }) {
-                        Icon(Icons.Default.Add, contentDescription = "Create Repo")
+                        Icon(Icons.Default.Add, contentDescription = bt(Strings.createRepo))
                     }
                     IconButton(onClick = onAccountClick) {
-                        Icon(Icons.Default.AccountCircle, contentDescription = "Account")
+                        uiState.user?.avatarUrl?.let { url ->
+                            AsyncImage(
+                                model = url,
+                                contentDescription = bt(Strings.account),
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                            )
+                        } ?: run {
+                            Icon(Icons.Default.AccountCircle, contentDescription = bt(Strings.account))
+                        }
                     }
                 }
             )
@@ -70,12 +95,12 @@ fun RepoListScreen(
                 Tab(
                     selected = !uiState.isStarredTab,
                     onClick = { viewModel.toggleTab(false) },
-                    text = { Text("My Repos") }
+                    text = { BilingualLabelSmall(Strings.myRepos) }
                 )
                 Tab(
                     selected = uiState.isStarredTab,
                     onClick = { viewModel.toggleTab(true) },
-                    text = { Text("Starred") }
+                    text = { BilingualLabelSmall(Strings.starred) }
                 )
             }
 
@@ -88,7 +113,7 @@ fun RepoListScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(uiState.error!!, color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = viewModel::loadRepos) { Text("Retry") }
+                        Button(onClick = viewModel::loadRepos) { Text(bt(Strings.retry)) }
                     }
                 }
             } else {
@@ -96,17 +121,28 @@ fun RepoListScreen(
                     contentPadding = PaddingValues(vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(uiState.repos) { repo ->
-                        RepoItem(
-                            repo = repo,
-                            onClick = { onRepoClick(repo.owner.login, repo.name) },
-                            onStarClick = {
-                                viewModel.starRepo(repo.owner.login, repo.name)
-                            },
-                            onForkClick = {
-                                viewModel.forkRepo(repo.owner.login, repo.name)
-                            }
-                        )
+                    items(uiState.repos, key = { it.id }) { repo ->
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn(tween(300)) + slideInVertically(tween(300)) { it / 3 },
+                            exit = fadeOut(tween(300)) + slideOutVertically(tween(300)) { it / 3 }
+                        ) {
+                            RepoItem(
+                                repo = repo,
+                                isStarred = uiState.starredRepos.contains(repo.fullName),
+                                onClick = { onRepoClick(repo.owner.login, repo.name) },
+                                onStarClick = {
+                                    if (uiState.starredRepos.contains(repo.fullName)) {
+                                        viewModel.unstarRepo(repo.owner.login, repo.name)
+                                    } else {
+                                        viewModel.starRepo(repo.owner.login, repo.name)
+                                    }
+                                },
+                                onForkClick = {
+                                    viewModel.forkRepo(repo.owner.login, repo.name)
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -127,6 +163,7 @@ fun RepoListScreen(
 @Composable
 fun RepoItem(
     repo: Repository,
+    isStarred: Boolean,
     onClick: () -> Unit,
     onStarClick: () -> Unit,
     onForkClick: () -> Unit
@@ -155,7 +192,7 @@ fun RepoItem(
                     Spacer(modifier = Modifier.width(8.dp))
                     AssistChip(
                         onClick = {},
-                        label = { Text("Private", style = MaterialTheme.typography.labelSmall) },
+                        label = { Text(bt(Strings.privateRepo), style = MaterialTheme.typography.labelSmall) },
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(14.dp)) }
                     )
                 }
@@ -186,8 +223,16 @@ fun RepoItem(
                     }
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(14.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable(role = Role.Button, onClick = onStarClick)
+                ) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = bt(Strings.star),
+                        modifier = Modifier.size(14.dp),
+                        tint = if (isStarred) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurface
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("${repo.stargazersCount}", style = MaterialTheme.typography.labelSmall)
                 }
@@ -231,25 +276,25 @@ fun CreateRepoDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Create Repository") },
+        title = { BilingualLabel(Strings.createRepository) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Repository Name") },
+                    label = { Text(bt(Strings.repositoryName)) },
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description (optional)") },
+                    label = { Text(bt(Strings.descriptionOptional)) },
                     maxLines = 3
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(checked = isPrivate, onCheckedChange = { isPrivate = it })
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Private")
+                    Text(bt(Strings.privateRepo))
                 }
             }
         },
@@ -257,10 +302,10 @@ fun CreateRepoDialog(
             TextButton(
                 onClick = { onCreate(name, description.ifBlank { null }, isPrivate) },
                 enabled = name.isNotBlank()
-            ) { Text("Create") }
+            ) { Text(bt(Strings.create)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(bt(Strings.cancel)) }
         }
     )
 }

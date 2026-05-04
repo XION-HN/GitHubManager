@@ -54,6 +54,15 @@ class GitHubRepository @Inject constructor(
         }
     }
 
+    suspend fun checkStarred(owner: String, repo: String): Result<Boolean> {
+        return try {
+            val response = apiService.checkStarred(owner, repo)
+            Result.success(response.isSuccessful)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getStarredRepos(page: Int = 1): Result<List<Repository>> = safeApiCall {
         apiService.getStarredRepos(page = page)
     }
@@ -62,8 +71,8 @@ class GitHubRepository @Inject constructor(
         apiService.forkRepository(owner, repo)
     }
 
-    suspend fun getCommits(owner: String, repo: String, page: Int = 1): Result<List<Commit>> = safeApiCall {
-        apiService.getCommits(owner, repo, page = page)
+    suspend fun getCommits(owner: String, repo: String, branch: String? = null, page: Int = 1): Result<List<Commit>> = safeApiCall {
+        apiService.getCommits(owner, repo, sha = branch, page = page)
     }
 
     suspend fun getCommitDetail(owner: String, repo: String, sha: String): Result<Commit> = safeApiCall {
@@ -84,6 +93,49 @@ class GitHubRepository @Inject constructor(
 
     suspend fun getPullRequest(owner: String, repo: String, number: Int): Result<PullRequest> = safeApiCall {
         apiService.getPullRequest(owner, repo, number)
+    }
+
+    suspend fun getBranches(owner: String, repo: String): Result<List<Branch>> = safeApiCall {
+        apiService.getBranches(owner, repo)
+    }
+
+    suspend fun getWorkflows(owner: String, repo: String): Result<List<Workflow>> = safeApiCall {
+        apiService.getWorkflows(owner, repo).workflows
+    }
+
+    suspend fun getWorkflowRuns(owner: String, repo: String, page: Int = 1): Result<WorkflowRunsResponse> = safeApiCall {
+        apiService.getWorkflowRuns(owner, repo, page = page)
+    }
+
+    suspend fun getWorkflowRun(owner: String, repo: String, runId: Long): Result<WorkflowRun> = safeApiCall {
+        apiService.getWorkflowRun(owner, repo, runId).workflowRun ?: throw Exception("Run not found")
+    }
+
+    suspend fun dispatchWorkflow(owner: String, repo: String, workflowId: Long, ref: String): Result<Boolean> {
+        return try {
+            val response = apiService.dispatchWorkflow(owner, repo, workflowId, WorkflowDispatchRequest(ref))
+            Result.success(response.isSuccessful)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun reRunWorkflow(owner: String, repo: String, runId: Long): Result<Boolean> {
+        return try {
+            val response = apiService.reRunWorkflow(owner, repo, runId)
+            Result.success(response.isSuccessful)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun cancelWorkflowRun(owner: String, repo: String, runId: Long): Result<Boolean> {
+        return try {
+            val response = apiService.cancelWorkflowRun(owner, repo, runId)
+            Result.success(response.isSuccessful)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     private suspend fun <T> safeApiCall(call: suspend () -> T): Result<T> {

@@ -33,6 +33,8 @@ class AuthViewModel @Inject constructor(
                 if (!savedToken.isNullOrBlank()) {
                     _uiState.value = _uiState.value.copy(token = savedToken)
                     validateToken(savedToken)
+                } else {
+                    _uiState.value = _uiState.value.copy(isAuthenticated = false)
                 }
             }
         }
@@ -45,7 +47,7 @@ class AuthViewModel @Inject constructor(
     fun login() {
         val token = _uiState.value.token.trim()
         if (token.isBlank()) {
-            _uiState.value = _uiState.value.copy(error = "Token cannot be empty")
+            _uiState.value = _uiState.value.copy(error = "令牌不能为空 / Token cannot be empty")
             return
         }
 
@@ -69,7 +71,8 @@ class AuthViewModel @Inject constructor(
             .onFailure { e ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Authentication failed: ${e.message}"
+                    isAuthenticated = false,
+                    error = "认证失败 / Authentication failed: ${e.message}"
                 )
             }
     }
@@ -80,4 +83,6 @@ class AuthViewModel @Inject constructor(
             _uiState.value = AuthUiState()
         }
     }
+
+    fun checkAuth(): Boolean = _uiState.value.isAuthenticated
 }
