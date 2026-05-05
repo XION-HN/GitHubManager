@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -20,14 +21,31 @@ import com.github.manager.data.model.*
 import com.github.manager.ui.i18n.*
 
 @Composable
-fun CommitsList(commits: List<Commit>) {
+fun CommitsList(
+    commits: List<Commit>,
+    isLoadingMore: Boolean = false,
+    hasMore: Boolean = true,
+    onLoadMore: () -> Unit = {}
+) {
     if (commits.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             BilingualLabelSmall(I18nStrings.noData)
         }
         return
     }
-    LazyColumn(contentPadding = PaddingValues(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    val listState = rememberLazyListState()
+    val isAtEnd by remember {
+        derivedStateOf {
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisible >= listState.layoutInfo.totalItemsCount - 2
+        }
+    }
+    LaunchedEffect(isAtEnd) {
+        if (isAtEnd && hasMore && !isLoadingMore) {
+            onLoadMore()
+        }
+    }
+    LazyColumn(state = listState, contentPadding = PaddingValues(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         items(commits) { commit ->
             Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp)) {
                 Column(modifier = Modifier.padding(12.dp)) {
@@ -38,6 +56,13 @@ fun CommitsList(commits: List<Commit>) {
                         Text(text = commit.sha.take(7), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Text(text = commit.commit.author.date, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        if (isLoadingMore) {
+            item {
+                Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
                 }
             }
         }
@@ -53,7 +78,10 @@ fun IssuesList(
     onCloseIssue: (Int) -> Unit,
     onReopenIssue: (Int) -> Unit,
     onViewComments: (Int) -> Unit,
-    onAddComment: (Int) -> Unit
+    onAddComment: (Int) -> Unit,
+    isLoadingMore: Boolean = false,
+    hasMore: Boolean = true,
+    onLoadMore: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -73,7 +101,19 @@ fun IssuesList(
             }
         }
         Box(modifier = Modifier.fillMaxSize()) {
-            LazyColumn(contentPadding = PaddingValues(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            val listState = rememberLazyListState()
+            val isAtEnd by remember {
+                derivedStateOf {
+                    val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                    lastVisible >= listState.layoutInfo.totalItemsCount - 2
+                }
+            }
+            LaunchedEffect(isAtEnd) {
+                if (isAtEnd && hasMore && !isLoadingMore) {
+                    onLoadMore()
+                }
+            }
+            LazyColumn(state = listState, contentPadding = PaddingValues(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 items(issues) { issue ->
                     Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp)) {
                         Column(modifier = Modifier.padding(12.dp)) {
@@ -115,10 +155,17 @@ fun IssuesList(
                                 }
                             }
                         }
+                }
+            }
+            if (isLoadingMore) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     }
                 }
             }
-            FloatingActionButton(onClick = onCreateIssue, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
+        }
+        FloatingActionButton(onClick = onCreateIssue, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
                 Icon(Icons.Default.Add, contentDescription = getText(I18nStrings.createIssue))
             }
         }
@@ -130,7 +177,10 @@ fun PullRequestsList(
     prs: List<PullRequest>,
     stateFilter: String,
     onStateFilterChange: (String) -> Unit,
-    onMerge: (Int) -> Unit
+    onMerge: (Int) -> Unit,
+    isLoadingMore: Boolean = false,
+    hasMore: Boolean = true,
+    onLoadMore: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -149,7 +199,19 @@ fun PullRequestsList(
                 )
             }
         }
-        LazyColumn(contentPadding = PaddingValues(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        val listState = rememberLazyListState()
+        val isAtEnd by remember {
+            derivedStateOf {
+                val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                lastVisible >= listState.layoutInfo.totalItemsCount - 2
+            }
+        }
+        LaunchedEffect(isAtEnd) {
+            if (isAtEnd && hasMore && !isLoadingMore) {
+                onLoadMore()
+            }
+        }
+        LazyColumn(state = listState, contentPadding = PaddingValues(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             items(prs) { pr ->
                 Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp)) {
                     Column(modifier = Modifier.padding(12.dp)) {
@@ -187,7 +249,15 @@ fun PullRequestsList(
                 }
             }
         }
+        if (isLoadingMore) {
+            item {
+                Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
+            }
+        }
     }
+}
 }
 
 @Composable

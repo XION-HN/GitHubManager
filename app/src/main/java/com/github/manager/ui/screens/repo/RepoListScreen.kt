@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -11,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,31 +36,31 @@ fun RepoListScreen(
 
     Scaffold(
         topBar = {
-        TopAppBar(
-            title = {
-                Column {
-                    Text(uiState.user?.login ?: getText(I18nStrings.appName))
-                    if (languageModeState.value == LanguageMode.BILINGUAL && uiState.user != null) {
-                        Text(
-                            "My Repositories",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            fontSize = 10.sp
-                        )
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(uiState.user?.login ?: getText(I18nStrings.appName))
+                        if (languageModeState.value == LanguageMode.BILINGUAL && uiState.user != null) {
+                            Text(
+                                "My Repositories",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onSearchClick) {
+                        Icon(Icons.Default.Search, contentDescription = getText(I18nStrings.search))
+                    }
+                    IconButton(onClick = { showCreateDialog = true }) {
+                        Icon(Icons.Default.Add, contentDescription = getText(I18nStrings.createRepo))
+                    }
+                    IconButton(onClick = onAccountClick) {
+                        Icon(Icons.Default.AccountCircle, contentDescription = getText(I18nStrings.account))
                     }
                 }
-            },
-            actions = {
-                IconButton(onClick = onSearchClick) {
-                    Icon(Icons.Default.Search, contentDescription = getText(I18nStrings.search))
-                }
-                IconButton(onClick = { showCreateDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = getText(I18nStrings.createRepo))
-                }
-                IconButton(onClick = onAccountClick) {
-                    Icon(Icons.Default.AccountCircle, contentDescription = getText(I18nStrings.account))
-                }
-            }
-        )
+            )
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
@@ -75,11 +77,11 @@ fun RepoListScreen(
                 )
             }
 
-            if (uiState.isLoading) {
+            if (uiState.isLoading && !uiState.isRefreshing) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-            } else if (uiState.error != null) {
+            } else if (uiState.error != null && uiState.repos.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(uiState.error ?: "", color = MaterialTheme.colorScheme.error)
@@ -88,27 +90,87 @@ fun RepoListScreen(
                     }
                 }
             } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-            items(uiState.repos, key = { it.id }) { repo ->
-                RepoItem(
-                    repo = repo,
-                    isStarred = uiState.starredRepos.contains(repo.fullName),
-                    onClick = { onRepoClick(repo.owner.login, repo.name) },
-                    onStarClick = {
-                        if (uiState.starredRepos.contains(repo.fullName)) {
-                            viewModel.unstarRepo(repo.owner.login, repo.name)
-                        } else {
-                            viewModel.starRepo(repo.owner.login, repo.name)
-                        }
-                    },
-                    onForkClick = {
-                        viewModel.forkRepo(repo.owner.login, repo.name)
+                val listState = rememberLazyListState()
+                val isAtEnd by remember {
+                    derivedStateOf {
+                        val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                        lastVisible >= listState.layoutInfo.totalItemsCount - 2
                     }
-                )
-            }
+                }
+                LaunchedEffect(isAtEnd) {
+                    if (isAtEnd && uiState.hasMore && !uiState.isLoadingMore) {
+                        viewModel.loadMore()
+                    }
+                }
+
+                val pullToRefreshState = rememberPullToRefreshState()
+                if (pullToRefreshState.isAnimating) {
+                    LaunchedEffect(true) {
+                        viewModel.refresh()
+                    }
+                }
+                LaunchedEffect(uiState.isRefreshing) {
+                    if (!uiState.isRefreshing) {
+                        pullToRefreshState.endRefresh()
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .nestedScroll(pullToRefreshState.nestedScrollConnection)
+                ) {
+                    LazyColumn(
+                        state = listState,
+                        contentPadding = PaddingValues(vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(uiState.repos, key = { it.id }) { repo ->
+                            RepoItem(
+                                repo = repo,
+                                isStarred = uiState.starredRepos.contains(repo.fullName),
+                                onClick = { onRepoClick(repo.owner.login, repo.name) },
+                                onStarClick = {
+                                    if (uiState.starredRepos.contains(repo.fullName)) {
+                                        viewModel.unstarRepo(repo.owner.login, repo.name)
+                                    } else {
+                                        viewModel.starRepo(repo.owner.login, repo.name)
+                                    }
+                                },
+                                onForkClick = {
+                                    viewModel.forkRepo(repo.owner.login, repo.name)
+                                }
+                            )
+                        }
+                        if (uiState.isLoadingMore) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                }
+                            }
+                        }
+                        if (!uiState.hasMore && uiState.repos.isNotEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        getText(I18nStrings.noData),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    PullToRefreshContainer(
+                        state = pullToRefreshState,
+                        modifier = Modifier.align(Alignment.TopCenter)
+                    )
                 }
             }
         }

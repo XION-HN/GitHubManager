@@ -26,6 +26,12 @@ data class RepoDetailUiState(
     val pathStack: List<String> = emptyList(),
     val readmeContent: String? = null,
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val isLoadingMore: Boolean = false,
+    val hasMoreCommits: Boolean = true,
+    val hasMoreIssues: Boolean = true,
+    val hasMorePrs: Boolean = true,
+    val hasMoreReleases: Boolean = true,
     val error: String? = null,
     val currentTab: Int = 0,
     val currentBranch: String? = null,
@@ -49,6 +55,11 @@ class RepoDetailViewModel @Inject constructor(
     private var owner: String = ""
     private var repoName: String = ""
     private var initialized = false
+    private var commitsPage = 1
+    private var issuesPage = 1
+    private var prsPage = 1
+    private var releasesPage = 1
+    private val perPage = 30
 
     fun init(owner: String, repo: String) {
         if (owner == this.owner && repoName == repo && initialized) return
@@ -106,13 +117,38 @@ class RepoDetailViewModel @Inject constructor(
     fun loadCommits() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
+            commitsPage = 1
             val branch = _uiState.value.currentBranch
-            gitHubRepository.getCommits(owner, repoName, branch = branch)
+            gitHubRepository.getCommits(owner, repoName, branch = branch, page = commitsPage)
                 .onSuccess { commits ->
-                    _uiState.value = _uiState.value.copy(commits = commits, isLoading = false)
+                    _uiState.value = _uiState.value.copy(
+                        commits = commits,
+                        isLoading = false,
+                        hasMoreCommits = commits.size >= perPage
+                    )
                 }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                }
+        }
+    }
+
+    fun loadMoreCommits() {
+        if (_uiState.value.isLoadingMore || !_uiState.value.hasMoreCommits) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingMore = true)
+            commitsPage++
+            gitHubRepository.getCommits(owner, repoName, branch = _uiState.value.currentBranch, page = commitsPage)
+                .onSuccess { commits ->
+                    _uiState.value = _uiState.value.copy(
+                        commits = _uiState.value.commits + commits,
+                        isLoadingMore = false,
+                        hasMoreCommits = commits.size >= perPage
+                    )
+                }
+                .onFailure { e ->
+                    commitsPage--
+                    _uiState.value = _uiState.value.copy(isLoadingMore = false, error = e.message)
                 }
         }
     }
@@ -125,13 +161,39 @@ class RepoDetailViewModel @Inject constructor(
     fun loadIssues() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            gitHubRepository.getIssues(owner, repoName, state = _uiState.value.issueStateFilter)
+            issuesPage = 1
+            gitHubRepository.getIssues(owner, repoName, state = _uiState.value.issueStateFilter, page = issuesPage)
                 .onSuccess { issues ->
                     val realIssues = issues.filter { it.pullRequest == null }
-                    _uiState.value = _uiState.value.copy(issues = realIssues, isLoading = false)
+                    _uiState.value = _uiState.value.copy(
+                        issues = realIssues,
+                        isLoading = false,
+                        hasMoreIssues = issues.size >= perPage
+                    )
                 }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                }
+        }
+    }
+
+    fun loadMoreIssues() {
+        if (_uiState.value.isLoadingMore || !_uiState.value.hasMoreIssues) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingMore = true)
+            issuesPage++
+            gitHubRepository.getIssues(owner, repoName, state = _uiState.value.issueStateFilter, page = issuesPage)
+                .onSuccess { issues ->
+                    val realIssues = issues.filter { it.pullRequest == null }
+                    _uiState.value = _uiState.value.copy(
+                        issues = _uiState.value.issues + realIssues,
+                        isLoadingMore = false,
+                        hasMoreIssues = issues.size >= perPage
+                    )
+                }
+                .onFailure { e ->
+                    issuesPage--
+                    _uiState.value = _uiState.value.copy(isLoadingMore = false, error = e.message)
                 }
         }
     }
@@ -144,12 +206,37 @@ class RepoDetailViewModel @Inject constructor(
     fun loadPullRequests() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            gitHubRepository.getPullRequests(owner, repoName, state = _uiState.value.prStateFilter)
+            prsPage = 1
+            gitHubRepository.getPullRequests(owner, repoName, state = _uiState.value.prStateFilter, page = prsPage)
                 .onSuccess { prs ->
-                    _uiState.value = _uiState.value.copy(pullRequests = prs, isLoading = false)
+                    _uiState.value = _uiState.value.copy(
+                        pullRequests = prs,
+                        isLoading = false,
+                        hasMorePrs = prs.size >= perPage
+                    )
                 }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                }
+        }
+    }
+
+    fun loadMorePullRequests() {
+        if (_uiState.value.isLoadingMore || !_uiState.value.hasMorePrs) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingMore = true)
+            prsPage++
+            gitHubRepository.getPullRequests(owner, repoName, state = _uiState.value.prStateFilter, page = prsPage)
+                .onSuccess { prs ->
+                    _uiState.value = _uiState.value.copy(
+                        pullRequests = _uiState.value.pullRequests + prs,
+                        isLoadingMore = false,
+                        hasMorePrs = prs.size >= perPage
+                    )
+                }
+                .onFailure { e ->
+                    prsPage--
+                    _uiState.value = _uiState.value.copy(isLoadingMore = false, error = e.message)
                 }
         }
     }
@@ -351,13 +438,47 @@ class RepoDetailViewModel @Inject constructor(
     fun loadReleases() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
+            releasesPage = 1
             gitHubRepository.getReleases(owner, repoName)
                 .onSuccess { releases ->
-                    _uiState.value = _uiState.value.copy(releases = releases, isLoading = false)
+                    _uiState.value = _uiState.value.copy(
+                        releases = releases,
+                        isLoading = false,
+                        hasMoreReleases = releases.size >= 20
+                    )
                 }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
                 }
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
+            val branch = _uiState.value.currentBranch
+            gitHubRepository.getRepository(owner, repoName)
+                .onSuccess { repo ->
+                    _uiState.value = _uiState.value.copy(repo = repo)
+                }
+            when (_uiState.value.currentTab) {
+                0 -> gitHubRepository.getCommits(owner, repoName, branch = branch, page = 1)
+                    .onSuccess { _uiState.value = _uiState.value.copy(commits = it) }
+                1 -> gitHubRepository.getIssues(owner, repoName, state = _uiState.value.issueStateFilter, page = 1)
+                    .onSuccess { _uiState.value = _uiState.value.copy(issues = it.filter { i -> i.pullRequest == null }) }
+                2 -> gitHubRepository.getPullRequests(owner, repoName, state = _uiState.value.prStateFilter, page = 1)
+                    .onSuccess { _uiState.value = _uiState.value.copy(pullRequests = it) }
+                3 -> gitHubRepository.getBranches(owner, repoName)
+                    .onSuccess { _uiState.value = _uiState.value.copy(branches = it) }
+                5 -> {
+                    gitHubRepository.getWorkflows(owner, repoName).onSuccess { _uiState.value = _uiState.value.copy(workflows = it) }
+                    gitHubRepository.getWorkflowRuns(owner, repoName).onSuccess { _uiState.value = _uiState.value.copy(workflowRuns = it.workflowRuns) }
+                }
+                6 -> gitHubRepository.getReleases(owner, repoName)
+                    .onSuccess { _uiState.value = _uiState.value.copy(releases = it) }
+            }
+            checkStarred()
+            _uiState.value = _uiState.value.copy(isRefreshing = false)
         }
     }
 

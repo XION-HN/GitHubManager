@@ -17,6 +17,9 @@ data class RepoListUiState(
     val user: User? = null,
     val repos: List<Repository> = emptyList(),
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val isLoadingMore: Boolean = false,
+    val hasMore: Boolean = true,
     val error: String? = null,
     val isStarredTab: Boolean = false,
     val starredRepos: Set<String> = emptySet()
@@ -30,6 +33,9 @@ class RepoListViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(RepoListUiState())
     val uiState: StateFlow<RepoListUiState> = _uiState.asStateFlow()
+
+    private var currentPage = 1
+    private val perPage = 30
 
     init {
         loadProfile()
@@ -60,17 +66,72 @@ class RepoListViewModel @Inject constructor(
     fun loadRepos() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            currentPage = 1
             val result = if (_uiState.value.isStarredTab) {
-                gitHubRepository.getStarredRepos()
+                gitHubRepository.getStarredRepos(page = currentPage)
             } else {
-                gitHubRepository.getUserRepos()
+                gitHubRepository.getUserRepos(page = currentPage)
             }
             result
                 .onSuccess { repos ->
-                    _uiState.value = _uiState.value.copy(repos = repos, isLoading = false)
+                    _uiState.value = _uiState.value.copy(
+                        repos = repos,
+                        isLoading = false,
+                        hasMore = repos.size >= perPage
+                    )
                 }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                }
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
+            currentPage = 1
+            val result = if (_uiState.value.isStarredTab) {
+                gitHubRepository.getStarredRepos(page = currentPage)
+            } else {
+                gitHubRepository.getUserRepos(page = currentPage)
+            }
+            result
+                .onSuccess { repos ->
+                    _uiState.value = _uiState.value.copy(
+                        repos = repos,
+                        isRefreshing = false,
+                        hasMore = repos.size >= perPage
+                    )
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(error = e.message, isRefreshing = false)
+                }
+            loadProfile()
+            loadStarredSet()
+        }
+    }
+
+    fun loadMore() {
+        if (_uiState.value.isLoadingMore || !_uiState.value.hasMore) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingMore = true)
+            currentPage++
+            val result = if (_uiState.value.isStarredTab) {
+                gitHubRepository.getStarredRepos(page = currentPage)
+            } else {
+                gitHubRepository.getUserRepos(page = currentPage)
+            }
+            result
+                .onSuccess { repos ->
+                    _uiState.value = _uiState.value.copy(
+                        repos = _uiState.value.repos + repos,
+                        isLoadingMore = false,
+                        hasMore = repos.size >= perPage
+                    )
+                }
+                .onFailure { e ->
+                    currentPage--
+                    _uiState.value = _uiState.value.copy(isLoadingMore = false, error = e.message)
                 }
         }
     }
