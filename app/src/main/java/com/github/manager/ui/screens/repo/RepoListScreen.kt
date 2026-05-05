@@ -8,13 +8,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -22,9 +19,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.github.manager.data.model.Repository
+import com.github.manager.ui.components.PullToRefreshBox
+import com.github.manager.ui.components.rememberCustomPullToRefreshState
 import com.github.manager.ui.i18n.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RepoListScreen(
     onRepoClick: (owner: String, repo: String) -> Unit,
@@ -105,75 +103,67 @@ fun RepoListScreen(
                     }
                 }
 
-                val pullToRefreshState = rememberPullToRefreshState()
-                if (pullToRefreshState.isAnimating) {
-                    LaunchedEffect(true) {
-                        viewModel.refresh()
-                    }
-                }
+            val pullToRefreshState = rememberCustomPullToRefreshState()
+
+            PullToRefreshBox(
+                state = pullToRefreshState,
+                onRefresh = { viewModel.refresh() },
+                modifier = Modifier.fillMaxSize()
+            ) {
                 LaunchedEffect(uiState.isRefreshing) {
                     if (!uiState.isRefreshing) {
                         pullToRefreshState.endRefresh()
                     }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .nestedScroll(pullToRefreshState.nestedScrollConnection)
+                LazyColumn(
+                    state = listState,
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    LazyColumn(
-                        state = listState,
-                        contentPadding = PaddingValues(vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        items(uiState.repos, key = { it.id }) { repo ->
-                            RepoItem(
-                                repo = repo,
-                                isStarred = uiState.starredRepos.contains(repo.fullName),
-                                onClick = { onRepoClick(repo.owner.login, repo.name) },
-                                onStarClick = {
-                                    if (uiState.starredRepos.contains(repo.fullName)) {
-                                        viewModel.unstarRepo(repo.owner.login, repo.name)
-                                    } else {
-                                        viewModel.starRepo(repo.owner.login, repo.name)
-                                    }
-                                },
-                                onForkClick = {
-                                    viewModel.forkRepo(repo.owner.login, repo.name)
+                    items(uiState.repos, key = { it.id }) { repo ->
+                        RepoItem(
+                            repo = repo,
+                            isStarred = uiState.starredRepos.contains(repo.fullName),
+                            onClick = { onRepoClick(repo.owner.login, repo.name) },
+                            onStarClick = {
+                                if (uiState.starredRepos.contains(repo.fullName)) {
+                                    viewModel.unstarRepo(repo.owner.login, repo.name)
+                                } else {
+                                    viewModel.starRepo(repo.owner.login, repo.name)
                                 }
-                            )
-                        }
-                        if (uiState.isLoadingMore) {
-                            item {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                                }
+                            },
+                            onForkClick = {
+                                viewModel.forkRepo(repo.owner.login, repo.name)
                             }
-                        }
-                        if (!uiState.hasMore && uiState.repos.isNotEmpty()) {
-                            item {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        getText(I18nStrings.noData),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+                        )
+                    }
+                    if (uiState.isLoadingMore) {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
                             }
                         }
                     }
-                    PullToRefreshContainer(
-                        state = pullToRefreshState,
-                        modifier = Modifier.align(Alignment.TopCenter)
-                    )
+                    if (!uiState.hasMore && uiState.repos.isNotEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    getText(I18nStrings.noData),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
                 }
+            }
             }
         }
     }

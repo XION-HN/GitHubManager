@@ -9,13 +9,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -23,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.github.manager.data.model.*
+import com.github.manager.ui.components.PullToRefreshBox
+import com.github.manager.ui.components.rememberCustomPullToRefreshState
 import com.github.manager.ui.i18n.*
 import kotlinx.coroutines.delay
 
@@ -30,7 +29,7 @@ internal fun safeSubstring(s: String, start: Int, end: Int): String {
     return try { s.substring(start, end) } catch (e: Exception) { s }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun RepoDetailScreen(
     owner: String,
@@ -43,8 +42,8 @@ fun RepoDetailScreen(
     var showCreateIssueDialog by remember { mutableStateOf(false) }
     var showBranchDialog by remember { mutableStateOf(false) }
     var showTriggerWorkflowDialog by remember { mutableStateOf(false) }
-    var showCommentDialog by remember { mutableIntStateOf(-1) }
-    var showCommentsDialog by remember { mutableIntStateOf(-1) }
+    var showCommentDialog by remember { mutableStateOf(-1) }
+    var showCommentsDialog by remember { mutableStateOf(-1) }
     val context = LocalContext.current
 
     LaunchedEffect(owner, repo) {
@@ -184,103 +183,95 @@ fun RepoDetailScreen(
                     CircularProgressIndicator()
                 }
             } else {
-                val pullToRefreshState = rememberPullToRefreshState()
-                if (pullToRefreshState.isAnimating) {
-                    LaunchedEffect(true) {
-                        viewModel.refresh()
-                    }
-                }
-                LaunchedEffect(uiState.isRefreshing) {
-                    if (!uiState.isRefreshing) {
-                        pullToRefreshState.endRefresh()
-                    }
-                }
+        val pullToRefreshState = rememberCustomPullToRefreshState()
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .nestedScroll(pullToRefreshState.nestedScrollConnection)
-                ) {
-                    AnimatedContent(
-                        targetState = uiState.currentTab,
-                        transitionSpec = {
-                            if (targetState > initialState) {
-                                slideInHorizontally(initialOffsetX = { it / 3 }, animationSpec = tween(300)) + fadeIn(tween(300)) with
-                                slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = tween(300)) + fadeOut(tween(300))
-                            } else {
-                                slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = tween(300)) + fadeIn(tween(300)) with
-                                slideOutHorizontally(targetOffsetX = { it / 3 }, animationSpec = tween(300)) + fadeOut(tween(300))
-                            }
-                        }
-                    ) { tab ->
-                        when (tab) {
-                            0 -> CommitsList(
-                                commits = uiState.commits,
-                                isLoadingMore = uiState.isLoadingMore,
-                                hasMore = uiState.hasMoreCommits,
-                                onLoadMore = { viewModel.loadMoreCommits() }
-                            )
-                            1 -> IssuesList(
-                                issues = uiState.issues,
-                                stateFilter = uiState.issueStateFilter,
-                                onStateFilterChange = { viewModel.setIssueFilter(it) },
-                                onCreateIssue = { showCreateIssueDialog = true },
-                                onCloseIssue = { viewModel.closeIssue(it) },
-                                onReopenIssue = { viewModel.reopenIssue(it) },
-                                onViewComments = { showCommentsDialog = it },
-                                onAddComment = { showCommentDialog = it },
-                                isLoadingMore = uiState.isLoadingMore,
-                                hasMore = uiState.hasMoreIssues,
-                                onLoadMore = { viewModel.loadMoreIssues() }
-                            )
-                            2 -> PullRequestsList(
-                                prs = uiState.pullRequests,
-                                stateFilter = uiState.prStateFilter,
-                                onStateFilterChange = { viewModel.setPrFilter(it) },
-                                onMerge = { viewModel.mergePullRequest(it) },
-                                isLoadingMore = uiState.isLoadingMore,
-                                hasMore = uiState.hasMorePrs,
-                                onLoadMore = { viewModel.loadMorePullRequests() }
-                            )
-                            3 -> BranchesList(
-                                branches = uiState.branches,
-                                currentBranch = uiState.currentBranch ?: uiState.repo?.defaultBranch ?: "main",
-                                onSwitchBranch = { viewModel.switchBranch(it) }
-                            )
-                            4 -> FileBrowserTab(
-                                files = uiState.files,
-                                currentPath = uiState.currentPath,
-                                canNavigateUp = uiState.pathStack.isNotEmpty(),
-                                onNavigateUp = { viewModel.navigateUp() },
-                                onFileClick = { file ->
-                                    if (file.type == "dir") {
-                                        viewModel.loadFiles(file.path)
-                                    } else {
-                                        file.htmlUrl.takeIf { it.isNotBlank() }?.let {
-                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
-                                        }
-                                    }
-                                },
-                                readmeContent = uiState.readmeContent,
-                                onLoadReadme = { viewModel.loadReadme() }
-                            )
-                            5 -> ActionsTab(
-                                workflows = uiState.workflows,
-                                runs = uiState.workflowRuns,
-                                onRefresh = { viewModel.loadWorkflowRuns() },
-                                onTriggerWorkflow = { showTriggerWorkflowDialog = true },
-                                onReRun = { viewModel.reRunWorkflow(it) },
-                                onCancelRun = { viewModel.cancelWorkflowRun(it) },
-                                isMonitoring = uiState.isMonitoringActions
-                            )
-                            6 -> ReleasesList(uiState.releases)
-                        }
-                    }
-                    PullToRefreshContainer(
-                        state = pullToRefreshState,
-                        modifier = Modifier.align(Alignment.TopCenter)
-                    )
+        PullToRefreshBox(
+            state = pullToRefreshState,
+            onRefresh = { viewModel.refresh() },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            LaunchedEffect(uiState.isRefreshing) {
+                if (!uiState.isRefreshing) {
+                    pullToRefreshState.endRefresh()
                 }
+            }
+
+            AnimatedContent(
+                targetState = uiState.currentTab,
+                transitionSpec = {
+                    if (targetState > initialState) {
+                        slideInHorizontally(initialOffsetX = { it / 3 }, animationSpec = tween(300)) + fadeIn(tween(300)) with
+                        slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = tween(300)) + fadeOut(tween(300))
+                    } else {
+                        slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = tween(300)) + fadeIn(tween(300)) with
+                        slideOutHorizontally(targetOffsetX = { it / 3 }, animationSpec = tween(300)) + fadeOut(tween(300))
+                    }
+                }
+            ) { tab ->
+                when (tab) {
+                    0 -> CommitsList(
+                        commits = uiState.commits,
+                        isLoadingMore = uiState.isLoadingMore,
+                        hasMore = uiState.hasMoreCommits,
+                        onLoadMore = { viewModel.loadMoreCommits() }
+                    )
+                    1 -> IssuesList(
+                        issues = uiState.issues,
+                        stateFilter = uiState.issueStateFilter,
+                        onStateFilterChange = { viewModel.setIssueFilter(it) },
+                        onCreateIssue = { showCreateIssueDialog = true },
+                        onCloseIssue = { viewModel.closeIssue(it) },
+                        onReopenIssue = { viewModel.reopenIssue(it) },
+                        onViewComments = { showCommentsDialog = it },
+                        onAddComment = { showCommentDialog = it },
+                        isLoadingMore = uiState.isLoadingMore,
+                        hasMore = uiState.hasMoreIssues,
+                        onLoadMore = { viewModel.loadMoreIssues() }
+                    )
+                    2 -> PullRequestsList(
+                        prs = uiState.pullRequests,
+                        stateFilter = uiState.prStateFilter,
+                        onStateFilterChange = { viewModel.setPrFilter(it) },
+                        onMerge = { viewModel.mergePullRequest(it) },
+                        isLoadingMore = uiState.isLoadingMore,
+                        hasMore = uiState.hasMorePrs,
+                        onLoadMore = { viewModel.loadMorePullRequests() }
+                    )
+                    3 -> BranchesList(
+                        branches = uiState.branches,
+                        currentBranch = uiState.currentBranch ?: uiState.repo?.defaultBranch ?: "main",
+                        onSwitchBranch = { viewModel.switchBranch(it) }
+                    )
+                    4 -> FileBrowserTab(
+                        files = uiState.files,
+                        currentPath = uiState.currentPath,
+                        canNavigateUp = uiState.pathStack.isNotEmpty(),
+                        onNavigateUp = { viewModel.navigateUp() },
+                        onFileClick = { file ->
+                            if (file.type == "dir") {
+                                viewModel.loadFiles(file.path)
+                            } else {
+                                file.htmlUrl.takeIf { it.isNotBlank() }?.let {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
+                                }
+                            }
+                        },
+                        readmeContent = uiState.readmeContent,
+                        onLoadReadme = { viewModel.loadReadme() }
+                    )
+                    5 -> ActionsTab(
+                        workflows = uiState.workflows,
+                        runs = uiState.workflowRuns,
+                        onRefresh = { viewModel.loadWorkflowRuns() },
+                        onTriggerWorkflow = { showTriggerWorkflowDialog = true },
+                        onReRun = { viewModel.reRunWorkflow(it) },
+                        onCancelRun = { viewModel.cancelWorkflowRun(it) },
+                        isMonitoring = uiState.isMonitoringActions
+                    )
+                    6 -> ReleasesList(uiState.releases)
+                }
+            }
+        }
             }
         }
     }
