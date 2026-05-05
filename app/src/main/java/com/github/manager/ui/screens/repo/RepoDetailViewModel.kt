@@ -399,9 +399,9 @@ class RepoDetailViewModel @Inject constructor(
         viewModelScope.launch {
             gitHubRepository.getWorkflowRuns(owner, repoName)
                 .onSuccess { response ->
-                    val hasActive = response.workflowRuns.any { it.status == "in_progress" || it.status == "queued" || it.status == "waiting" }
-                    _uiState.value = _uiState.value.copy(
-                        workflowRuns = response.workflowRuns,
+val hasActive = response.workflowRuns?.any { it.status == "in_progress" || it.status == "queued" || it.status == "waiting" } ?: false
+            _uiState.value = _uiState.value.copy(
+                workflowRuns = response.workflowRuns ?: emptyList(),
                         isMonitoringActions = hasActive
                     )
                 }
@@ -472,7 +472,7 @@ class RepoDetailViewModel @Inject constructor(
                     .onSuccess { _uiState.value = _uiState.value.copy(branches = it) }
                 5 -> {
                     gitHubRepository.getWorkflows(owner, repoName).onSuccess { _uiState.value = _uiState.value.copy(workflows = it) }
-                    gitHubRepository.getWorkflowRuns(owner, repoName).onSuccess { _uiState.value = _uiState.value.copy(workflowRuns = it.workflowRuns) }
+                    gitHubRepository.getWorkflowRuns(owner, repoName).onSuccess { _uiState.value = _uiState.value.copy(workflowRuns = it.workflowRuns ?: emptyList()) }
                 }
                 6 -> gitHubRepository.getReleases(owner, repoName)
                     .onSuccess { _uiState.value = _uiState.value.copy(releases = it) }

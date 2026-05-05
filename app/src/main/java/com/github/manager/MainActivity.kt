@@ -18,6 +18,7 @@ import com.github.manager.ui.navigation.GitHubNavHost
 import com.github.manager.ui.theme.GitHubManagerTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 

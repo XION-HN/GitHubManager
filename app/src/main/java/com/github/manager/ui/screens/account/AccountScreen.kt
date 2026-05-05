@@ -75,7 +75,7 @@ fun AccountScreen(
                 }
             }
             uiState.user != null -> {
-                val user = uiState.user ?: return@Column
+                val user = uiState.user!!
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
