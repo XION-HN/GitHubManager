@@ -153,9 +153,9 @@ fun IssuesList(
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(getText(I18nStrings.comments), style = MaterialTheme.typography.labelSmall)
                                 }
-                            }
-                        }
+                    }
                 }
+            }
             }
             if (isLoadingMore) {
                 item {
@@ -166,10 +166,10 @@ fun IssuesList(
             }
         }
         FloatingActionButton(onClick = onCreateIssue, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
-                Icon(Icons.Default.Add, contentDescription = getText(I18nStrings.createIssue))
-            }
+            Icon(Icons.Default.Add, contentDescription = getText(I18nStrings.createIssue))
         }
     }
+}
 }
 
 @Composable
@@ -246,8 +246,7 @@ fun PullRequestsList(
                             }
                         }
                     }
-                }
-            }
+        }
         }
         if (isLoadingMore) {
             item {
