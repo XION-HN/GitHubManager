@@ -257,7 +257,7 @@ fun PullRequestsList(
             }
         }
     }
-}
+    }
 }
 
 @Composable
