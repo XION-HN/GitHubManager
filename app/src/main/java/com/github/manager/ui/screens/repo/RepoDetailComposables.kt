@@ -317,7 +317,7 @@ fun FileBrowserTab(
                     Text(getText(I18nStrings.readme), style = MaterialTheme.typography.labelSmall)
                 }
             }
-            HorizontalDivider()
+            Divider()
             LazyColumn(contentPadding = PaddingValues(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 items(files) { file ->
                     Row(
@@ -565,7 +565,7 @@ fun CommentsDialog(comments: List<IssueComment>, onDismiss: () -> Unit, onAddCom
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(comment.body, style = MaterialTheme.typography.bodySmall)
                 }
-                HorizontalDivider()
+                Divider()
             }
         }
     }, confirmButton = {

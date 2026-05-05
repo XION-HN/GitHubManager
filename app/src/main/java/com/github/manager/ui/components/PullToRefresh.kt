@@ -60,11 +60,11 @@ class CustomPullToRefreshState {
             return Offset.Zero
         }
 
-        override suspend fun onPreFling(available: Velocity): Offset {
+        override suspend fun onPreFling(available: Velocity): Velocity {
             if (pullOffset >= thresholdPx && !isRefreshing) {
                 isRefreshing = true
             }
-            return Offset.Zero
+            return Velocity.Zero
         }
     }
 

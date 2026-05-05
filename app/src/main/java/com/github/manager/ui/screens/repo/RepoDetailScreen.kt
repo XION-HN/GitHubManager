@@ -137,7 +137,7 @@ fun RepoDetailScreen(
                         }
                     }
                 }
-                HorizontalDivider()
+                Divider()
             }
 
             uiState.actionMessage?.let { msg ->
