@@ -1,9 +1,9 @@
 package com.github.manager.data.local.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.squareup.moshi.Json
 
 @Entity(tableName = "cached_repos", indices = [Index(value = ["fullName"], unique = true)])
 data class RepoEntity(
@@ -13,7 +13,7 @@ data class RepoEntity(
     val ownerLogin: String,
     val ownerAvatarUrl: String,
     val description: String?,
-    val private: Boolean = false,
+    @ColumnInfo(name = "is_private") val isPrivate: Boolean = false,
     val fork: Boolean = false,
     val htmlUrl: String = "",
     val language: String? = null,
