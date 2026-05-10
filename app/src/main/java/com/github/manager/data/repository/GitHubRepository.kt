@@ -1,6 +1,10 @@
 package com.github.manager.data.repository
 
 import com.github.manager.data.api.GitHubApiService
+import com.github.manager.data.local.db.RepoDao
+import com.github.manager.data.local.db.RepoEntity
+import com.github.manager.data.local.db.UserDao
+import com.github.manager.data.local.db.UserEntity
 import com.github.manager.data.model.*
 import retrofit2.Response
 import javax.inject.Inject
@@ -8,15 +12,37 @@ import javax.inject.Singleton
 
 @Singleton
 class GitHubRepository @Inject constructor(
-    private val apiService: GitHubApiService
+    private val apiService: GitHubApiService,
+    private val repoDao: RepoDao,
+    private val userDao: UserDao
 ) {
 
     suspend fun getAuthenticatedUser(): Result<User> = safeApiCall {
-        apiService.getAuthenticatedUser()
+        val user = apiService.getAuthenticatedUser()
+        userDao.insert(user.toEntity())
+        user
+    }
+
+    suspend fun getAuthenticatedUserFromCache(): User? {
+        return try {
+            val entities = userDao.searchUsers("")
+            entities.firstOrNull()?.toDomain()
+        } catch (e: Exception) {
+            null
+        }
     }
 
     suspend fun getUserRepos(page: Int = 1): Result<List<Repository>> = safeApiCall {
-        apiService.getUserRepos(page = page)
+        val repos = apiService.getUserRepos(page = page)
+        if (page == 1) {
+            val existingStarred = repoDao.getStarredRepos().map { it.fullName }.toSet()
+            repoDao.insertAll(repos.map { it.toEntity(isStarred = existingStarred.contains(it.fullName)) })
+        }
+        repos
+    }
+
+    suspend fun getUserReposFromCache(): List<Repository> {
+        return repoDao.getMyRepos().map { it.toDomain() }
     }
 
     suspend fun getRepository(owner: String, repo: String): Result<Repository> = safeApiCall {
@@ -30,6 +56,9 @@ class GitHubRepository @Inject constructor(
     suspend fun deleteRepository(owner: String, repo: String): Result<Boolean> {
         return try {
             val response = apiService.deleteRepository(owner, repo)
+            if (response.isSuccessful) {
+                repoDao.deleteByFullName("$owner/$repo")
+            }
             Result.success(response.isSuccessful)
         } catch (e: Exception) {
             Result.failure(e)
@@ -39,6 +68,9 @@ class GitHubRepository @Inject constructor(
     suspend fun starRepository(owner: String, repo: String): Result<Boolean> {
         return try {
             val response = apiService.starRepository(owner, repo)
+            if (response.isSuccessful) {
+                repoDao.updateStarred("$owner/$repo", true)
+            }
             Result.success(response.isSuccessful)
         } catch (e: Exception) {
             Result.failure(e)
@@ -48,6 +80,9 @@ class GitHubRepository @Inject constructor(
     suspend fun unstarRepository(owner: String, repo: String): Result<Boolean> {
         return try {
             val response = apiService.unstarRepository(owner, repo)
+            if (response.isSuccessful) {
+                repoDao.updateStarred("$owner/$repo", false)
+            }
             Result.success(response.isSuccessful)
         } catch (e: Exception) {
             Result.failure(e)
@@ -64,7 +99,15 @@ class GitHubRepository @Inject constructor(
     }
 
     suspend fun getStarredRepos(page: Int = 1): Result<List<Repository>> = safeApiCall {
-        apiService.getStarredRepos(page = page)
+        val repos = apiService.getStarredRepos(page = page)
+        if (page == 1) {
+            repoDao.insertAll(repos.map { it.toEntity(isStarred = true) })
+        }
+        repos
+    }
+
+    suspend fun getStarredReposFromCache(): List<Repository> {
+        return repoDao.getStarredRepos().map { it.toDomain() }
     }
 
     suspend fun forkRepository(owner: String, repo: String): Result<Repository> = safeApiCall {
@@ -144,9 +187,17 @@ class GitHubRepository @Inject constructor(
         result.copy(items = result.items ?: emptyList())
     }
 
+    suspend fun searchReposInCache(query: String): List<Repository> {
+        return repoDao.searchRepos(query).map { it.toDomain() }
+    }
+
     suspend fun searchUsers(query: String, page: Int = 1): Result<UserSearchResult> = safeApiCall {
         val result = apiService.searchUsers(query, page = page)
         result.copy(items = result.items ?: emptyList())
+    }
+
+    suspend fun searchUsersInCache(query: String): List<User> {
+        return userDao.searchUsers(query).map { it.toDomain() }
     }
 
     suspend fun getRepoContent(owner: String, repo: String, path: String, ref: String? = null): Result<List<RepoContent>> = safeApiCall {
@@ -182,6 +233,11 @@ class GitHubRepository @Inject constructor(
         apiService.getReleases(owner, repo) ?: emptyList()
     }
 
+    suspend fun clearAllCache() {
+        repoDao.deleteAll()
+        userDao.deleteAll()
+    }
+
     private suspend fun <T> safeApiCall(call: suspend () -> T): Result<T> {
         return try {
             Result.success(call())
@@ -189,4 +245,78 @@ class GitHubRepository @Inject constructor(
             Result.failure(e)
         }
     }
+}
+
+private fun Repository.toEntity(isStarred: Boolean = false): RepoEntity {
+    return RepoEntity(
+        id = id,
+        name = name,
+        fullName = fullName,
+        ownerLogin = owner.login,
+        ownerAvatarUrl = owner.avatarUrl,
+        description = description,
+        private = private,
+        fork = fork,
+        htmlUrl = htmlUrl,
+        language = language,
+        stargazersCount = stargazersCount,
+        forksCount = forksCount,
+        openIssuesCount = openIssuesCount,
+        defaultBranch = defaultBranch,
+        updatedAt = updatedAt,
+        topics = topics?.joinToString(","),
+        isStarred = isStarred
+    )
+}
+
+private fun RepoEntity.toDomain(): Repository {
+    return Repository(
+        id = id,
+        name = name,
+        fullName = fullName,
+        owner = Owner(id = 0, login = ownerLogin, avatarUrl = ownerAvatarUrl),
+        description = description,
+        private = private,
+        fork = fork,
+        htmlUrl = htmlUrl,
+        language = language,
+        stargazersCount = stargazersCount,
+        forksCount = forksCount,
+        openIssuesCount = openIssuesCount,
+        defaultBranch = defaultBranch,
+        updatedAt = updatedAt,
+        topics = topics?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
+    )
+}
+
+private fun User.toEntity(): UserEntity {
+    return UserEntity(
+        id = id,
+        login = login,
+        name = name,
+        avatarUrl = avatarUrl,
+        htmlUrl = htmlUrl,
+        bio = bio,
+        publicRepos = publicRepos,
+        publicGists = publicGists,
+        followers = followers,
+        following = following,
+        createdAt = createdAt
+    )
+}
+
+private fun UserEntity.toDomain(): User {
+    return User(
+        id = id,
+        login = login,
+        name = name,
+        avatarUrl = avatarUrl,
+        htmlUrl = htmlUrl,
+        bio = bio,
+        publicRepos = publicRepos,
+        publicGists = publicGists,
+        followers = followers,
+        following = following,
+        createdAt = createdAt
+    )
 }

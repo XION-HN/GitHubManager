@@ -33,6 +33,24 @@ fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showSortDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
+
+    if (showSortDialog) {
+        SortDialog(
+            currentSort = uiState.sortBy,
+            onSortSelected = { viewModel.setSortBy(it); showSortDialog = false },
+            onDismiss = { showSortDialog = false }
+        )
+    }
+
+    if (showLanguageDialog) {
+        LanguageFilterDialog(
+            currentLanguage = uiState.languageFilter,
+            onLanguageSelected = { viewModel.setLanguageFilter(it); showLanguageDialog = false },
+            onDismiss = { showLanguageDialog = false }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -55,8 +73,16 @@ fun SearchScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back") }
+                },
+                actions = {
+                    if (uiState.isRepoSearch && uiState.query.isNotBlank()) {
+                        IconButton(onClick = { showSortDialog = true }) {
+                            Icon(Icons.Default.Sort, contentDescription = "Sort")
+                        }
+                        IconButton(onClick = { showLanguageDialog = true }) {
+                            Icon(Icons.Default.FilterList, contentDescription = "Filter")
+                        }
                     }
                 }
             )
@@ -101,14 +127,37 @@ fun SearchScreen(
                 )
             }
 
+            if (uiState.languageFilter != null && uiState.isRepoSearch) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AssistChip(
+                        onClick = { viewModel.setLanguageFilter(null) },
+                        label = { Text(uiState.languageFilter ?: "", style = MaterialTheme.typography.labelSmall) },
+                        trailingIcon = { Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(12.dp)) }
+                    )
+                }
+            }
+
+            if (uiState.isOfflineFallback) {
+                Text(
+                    text = if (languageModeState.value == LanguageMode.ENGLISH)
+                        "Offline results from cache"
+                    else "离线缓存结果",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+                )
+            }
+
             if (uiState.totalCount > 0) {
                 Text(
                     text = "${uiState.totalCount}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
-        )
-        }
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+            }
 
             if (uiState.error != null) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -118,6 +167,13 @@ fun SearchScreen(
                         Button(onClick = { viewModel.onQueryChanged(uiState.query) }) { Text(getText(I18nStrings.retry)) }
                     }
                 }
+            } else if (uiState.query.isBlank() && uiState.showHistory && uiState.searchHistory.isNotEmpty()) {
+                SearchHistoryList(
+                    history = uiState.searchHistory,
+                    onSelect = viewModel::selectHistoryItem,
+                    onRemove = viewModel::removeFromHistory,
+                    onClearAll = viewModel::clearSearchHistory
+                )
             } else if (uiState.query.isBlank()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -183,6 +239,129 @@ fun SearchScreen(
             }
         }
     }
+}
+
+@Composable
+private fun SearchHistoryList(
+    history: List<String>,
+    onSelect: (String) -> Unit,
+    onRemove: (String) -> Unit,
+    onClearAll: () -> Unit
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val historyLabel = if (languageModeState.value == LanguageMode.ENGLISH) "Recent Searches" else "搜索历史"
+            Text(historyLabel, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            TextButton(onClick = onClearAll) {
+                val clearLabel = if (languageModeState.value == LanguageMode.ENGLISH) "Clear All" else "清除全部"
+                Text(clearLabel, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+        LazyColumn(
+            contentPadding = PaddingValues(vertical = 2.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            items(history, key = { it }) { query ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelect(query) }
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        query,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = { onRemove(query) }) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SortDialog(
+    currentSort: String,
+    onSortSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sortOptions = listOf("stars" to BilingualText("按星标", "By Stars"), "forks" to BilingualText("按复刻", "By Forks"), "updated" to BilingualText("按更新", "Recently Updated"))
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { val t = if (languageModeState.value == LanguageMode.ENGLISH) "Sort By" else "排序方式"; Text(t) },
+        text = {
+            Column {
+                sortOptions.forEach { (value, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSortSelected(value) }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = currentSort == value, onClick = { onSortSelected(value) })
+                        Spacer(modifier = Modifier.width(8.dp))
+                        BilingualLabel(label)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { BilingualLabel(I18nStrings.cancel) } }
+    )
+}
+
+@Composable
+private fun LanguageFilterDialog(
+    currentLanguage: String?,
+    onLanguageSelected: (String?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val languages = listOf(null to BilingualText("全部语言", "All Languages")) +
+            listOf("Kotlin", "Java", "Python", "JavaScript", "TypeScript", "Go", "Rust", "C++", "C", "Swift", "Dart", "Ruby", "PHP").map {
+                it to BilingualText(it, it)
+            }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { val t = if (languageModeState.value == LanguageMode.ENGLISH) "Filter by Language" else "按语言筛选"; Text(t) },
+        text = {
+            LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
+                items(languages) { (value, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onLanguageSelected(value) }
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = currentLanguage == value, onClick = { onLanguageSelected(value) })
+                        Spacer(modifier = Modifier.width(8.dp))
+                        BilingualLabel(label)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { BilingualLabel(I18nStrings.cancel) } }
+    )
 }
 
 @Composable

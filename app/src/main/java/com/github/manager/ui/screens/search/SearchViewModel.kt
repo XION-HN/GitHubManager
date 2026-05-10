@@ -23,7 +23,12 @@ data class SearchUiState(
     val error: String? = null,
     val page: Int = 1,
     val hasMore: Boolean = true,
-    val totalCount: Int = 0
+    val totalCount: Int = 0,
+    val searchHistory: List<String> = emptyList(),
+    val showHistory: Boolean = true,
+    val sortBy: String = "stars",
+    val languageFilter: String? = null,
+    val isOfflineFallback: Boolean = false
 )
 
 @HiltViewModel
@@ -36,13 +41,23 @@ class SearchViewModel @Inject constructor(
 
     private var searchJob: Job? = null
 
+    companion object {
+        private const val MAX_HISTORY = 20
+        private val historyEntries = mutableListOf<String>()
+    }
+
     fun onQueryChanged(query: String) {
         _uiState.value = _uiState.value.copy(query = query)
         searchJob?.cancel()
         if (query.isBlank()) {
-            _uiState.value = _uiState.value.copy(repos = emptyList(), users = emptyList(), isLoading = false, error = null, totalCount = 0)
+            _uiState.value = _uiState.value.copy(
+                repos = emptyList(), users = emptyList(),
+                isLoading = false, error = null, totalCount = 0,
+                showHistory = true, isOfflineFallback = false
+            )
             return
         }
+        _uiState.value = _uiState.value.copy(showHistory = false)
         searchJob = viewModelScope.launch {
             delay(400)
             _uiState.value = _uiState.value.copy(page = 1, hasMore = true)
@@ -51,7 +66,10 @@ class SearchViewModel @Inject constructor(
     }
 
     fun toggleSearchType(isRepo: Boolean) {
-        _uiState.value = _uiState.value.copy(isRepoSearch = isRepo, repos = emptyList(), users = emptyList(), page = 1, hasMore = true, totalCount = 0)
+        _uiState.value = _uiState.value.copy(
+            isRepoSearch = isRepo, repos = emptyList(), users = emptyList(),
+            page = 1, hasMore = true, totalCount = 0, isOfflineFallback = false
+        )
         if (_uiState.value.query.isNotBlank()) {
             searchJob?.cancel()
             searchJob = viewModelScope.launch { performSearch() }
@@ -66,10 +84,56 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    private suspend fun performSearch(append: Boolean = false) {
-        val query = _uiState.value.query
+    fun setSortBy(sort: String) {
+        _uiState.value = _uiState.value.copy(sortBy = sort)
+        if (_uiState.value.query.isNotBlank()) {
+            searchJob?.cancel()
+            searchJob = viewModelScope.launch {
+                _uiState.value = _uiState.value.copy(page = 1, hasMore = true)
+                performSearch()
+            }
+        }
+    }
+
+    fun setLanguageFilter(language: String?) {
+        _uiState.value = _uiState.value.copy(languageFilter = language)
+        if (_uiState.value.query.isNotBlank()) {
+            searchJob?.cancel()
+            searchJob = viewModelScope.launch {
+                _uiState.value = _uiState.value.copy(page = 1, hasMore = true)
+                performSearch()
+            }
+        }
+    }
+
+    fun addToHistory(query: String) {
         if (query.isBlank()) return
-        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        historyEntries.remove(query)
+        historyEntries.add(0, query)
+        if (historyEntries.size > MAX_HISTORY) {
+            historyEntries.removeLast()
+        }
+        _uiState.value = _uiState.value.copy(searchHistory = historyEntries.toList())
+    }
+
+    fun removeFromHistory(query: String) {
+        historyEntries.remove(query)
+        _uiState.value = _uiState.value.copy(searchHistory = historyEntries.toList())
+    }
+
+    fun clearSearchHistory() {
+        historyEntries.clear()
+        _uiState.value = _uiState.value.copy(searchHistory = emptyList())
+    }
+
+    fun selectHistoryItem(query: String) {
+        onQueryChanged(query)
+    }
+
+    private suspend fun performSearch(append: Boolean = false) {
+        val query = buildSearchQuery()
+        if (query.isBlank()) return
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null, isOfflineFallback = false)
         val page = _uiState.value.page
         if (_uiState.value.isRepoSearch) {
             gitHubRepository.searchRepositories(query, page = page)
@@ -81,9 +145,19 @@ class SearchViewModel @Inject constructor(
                         totalCount = result.totalCount,
                         hasMore = repos.size < result.totalCount
                     )
+                    addToHistory(_uiState.value.query.trim())
                 }
-                .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                .onFailure {
+                    val cachedRepos = gitHubRepository.searchReposInCache(_uiState.value.query.trim())
+                    if (cachedRepos.isNotEmpty() && !append) {
+                        _uiState.value = _uiState.value.copy(
+                            repos = cachedRepos,
+                            isLoading = false,
+                            isOfflineFallback = true
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(error = it.message, isLoading = false)
+                    }
                 }
         } else {
             gitHubRepository.searchUsers(query, page = page)
@@ -95,10 +169,30 @@ class SearchViewModel @Inject constructor(
                         totalCount = result.totalCount,
                         hasMore = users.size < result.totalCount
                     )
+                    addToHistory(_uiState.value.query.trim())
                 }
-                .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                .onFailure {
+                    val cachedUsers = gitHubRepository.searchUsersInCache(_uiState.value.query.trim())
+                    if (cachedUsers.isNotEmpty() && !append) {
+                        _uiState.value = _uiState.value.copy(
+                            users = cachedUsers,
+                            isLoading = false,
+                            isOfflineFallback = true
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(error = it.message, isLoading = false)
+                    }
                 }
         }
+    }
+
+    private fun buildSearchQuery(): String {
+        val baseQuery = _uiState.value.query.trim()
+        if (baseQuery.isBlank()) return ""
+        val parts = mutableListOf(baseQuery)
+        _uiState.value.languageFilter?.let { lang ->
+            parts.add("language:$lang")
+        }
+        return parts.joinToString(" ")
     }
 }
