@@ -1,41 +1,33 @@
 package com.github.manager.ui.screens.search
 
 import app.cash.turbine.test
-import com.github.manager.data.local.db.RepoDao
-import com.github.manager.data.local.db.UserDao
 import com.github.manager.data.model.Owner
 import com.github.manager.data.model.Repository
 import com.github.manager.data.model.SearchResult
 import com.github.manager.data.model.User
 import com.github.manager.data.model.UserSearchResult
 import com.github.manager.data.repository.GitHubRepository
+import io.mockk.any
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.Dispatchers
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mock
-import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SearchViewModelTest {
 
-    @Mock
-    private lateinit var gitHubRepository: GitHubRepository
-
-    @Mock
-    private lateinit var repoDao: RepoDao
-
-    @Mock
-    private lateinit var userDao: UserDao
+    private val gitHubRepository: GitHubRepository = mockk()
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -55,13 +47,12 @@ class SearchViewModelTest {
 
     @Before
     fun setUp() {
-        MockitoAnnotations.openMocks(this)
         Dispatchers.setMain(testDispatcher)
 
-        whenever(gitHubRepository.searchRepositories(any(), any())).thenReturn(Result.success(testSearchResult))
-        whenever(gitHubRepository.searchUsers(any(), any())).thenReturn(Result.success(testUserSearchResult))
-        whenever(gitHubRepository.searchReposInCache(any())).thenReturn(emptyList())
-        whenever(gitHubRepository.searchUsersInCache(any())).thenReturn(emptyList())
+        coEvery { gitHubRepository.searchRepositories(any(), any()) } returns Result.success(testSearchResult)
+        coEvery { gitHubRepository.searchUsers(any(), any()) } returns Result.success(testUserSearchResult)
+        coEvery { gitHubRepository.searchReposInCache(any()) } returns emptyList()
+        coEvery { gitHubRepository.searchUsersInCache(any()) } returns emptyList()
     }
 
     @After
@@ -107,7 +98,7 @@ class SearchViewModelTest {
         advanceTimeBy(400)
         advanceUntilIdle()
 
-        verify(gitHubRepository).searchRepositories(any(), page = 1)
+        coVerify { gitHubRepository.searchRepositories(any(), page = 1) }
     }
 
     @Test
@@ -131,7 +122,7 @@ class SearchViewModelTest {
         advanceTimeBy(400)
         advanceUntilIdle()
 
-        verify(gitHubRepository, atMost(1)).searchRepositories(any(), any())
+        coVerify(atMost = 1) { gitHubRepository.searchRepositories(any(), any()) }
     }
 
     @Test
@@ -151,10 +142,9 @@ class SearchViewModelTest {
 
     @Test
     fun `search failure falls back to cache`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.searchRepositories(any(), any())).thenReturn(Result.failure(RuntimeException("API error")))
-        whenever(gitHubRepository.searchReposInCache("kotlin")).thenReturn(
-            listOf(Repository(id = 1, name = "cached-repo", fullName = "user/cached-repo", owner = Owner(1, "user")))
-        )
+        coEvery { gitHubRepository.searchRepositories(any(), any()) } returns Result.failure(RuntimeException("API error"))
+        coEvery { gitHubRepository.searchReposInCache("kotlin") } returns
+                listOf(Repository(id = 1, name = "cached-repo", fullName = "user/cached-repo", owner = Owner(1, "user")))
 
         val viewModel = SearchViewModel(gitHubRepository)
 
@@ -172,7 +162,7 @@ class SearchViewModelTest {
 
     @Test
     fun `search failure with empty cache sets error`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.searchRepositories(any(), any())).thenReturn(Result.failure(RuntimeException("API error")))
+        coEvery { gitHubRepository.searchRepositories(any(), any()) } returns Result.failure(RuntimeException("API error"))
 
         val viewModel = SearchViewModel(gitHubRepository)
 
@@ -242,10 +232,9 @@ class SearchViewModelTest {
 
     @Test
     fun `user search failure falls back to cache`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.searchUsers(any(), any())).thenReturn(Result.failure(RuntimeException("API error")))
-        whenever(gitHubRepository.searchUsersInCache("test")).thenReturn(
-            listOf(User(id = 1, login = "cached-user"))
-        )
+        coEvery { gitHubRepository.searchUsers(any(), any()) } returns Result.failure(RuntimeException("API error"))
+        coEvery { gitHubRepository.searchUsersInCache("test") } returns
+                listOf(User(id = 1, login = "cached-user"))
 
         val viewModel = SearchViewModel(gitHubRepository)
         viewModel.toggleSearchType(false)
@@ -270,8 +259,8 @@ class SearchViewModelTest {
             Repository(id = i.toLong(), name = "repo$i", fullName = "user/repo$i", owner = Owner(1, "user"))
         })
 
-        whenever(gitHubRepository.searchRepositories("kotlin", page = 1)).thenReturn(Result.success(page1Result))
-        whenever(gitHubRepository.searchRepositories("kotlin", page = 2)).thenReturn(Result.success(page2Result))
+        coEvery { gitHubRepository.searchRepositories("kotlin", page = 1) } returns Result.success(page1Result)
+        coEvery { gitHubRepository.searchRepositories("kotlin", page = 2) } returns Result.success(page2Result)
 
         val viewModel = SearchViewModel(gitHubRepository)
 
@@ -294,7 +283,7 @@ class SearchViewModelTest {
 
         viewModel.loadMore()
 
-        verify(gitHubRepository, never()).searchRepositories(any(), any())
+        coVerify(exactly = 0) { gitHubRepository.searchRepositories(any(), any()) }
     }
 
     @Test
@@ -303,7 +292,7 @@ class SearchViewModelTest {
             Repository(id = 1, name = "repo1", fullName = "user/repo1", owner = Owner(1, "user")),
             Repository(id = 2, name = "repo2", fullName = "user/repo2", owner = Owner(1, "user"))
         ))
-        whenever(gitHubRepository.searchRepositories("rare", page = 1)).thenReturn(Result.success(smallResult))
+        coEvery { gitHubRepository.searchRepositories("rare", page = 1) } returns Result.success(smallResult)
 
         val viewModel = SearchViewModel(gitHubRepository)
 
@@ -340,7 +329,7 @@ class SearchViewModelTest {
 
         viewModel.toggleSearchType(false)
 
-        verify(gitHubRepository, never()).searchUsers(any(), any())
+        coVerify(exactly = 0) { gitHubRepository.searchUsers(any(), any()) }
     }
 
     @Test
@@ -456,7 +445,7 @@ class SearchViewModelTest {
         advanceTimeBy(400)
         advanceUntilIdle()
 
-        verify(gitHubRepository).searchRepositories(any(), any())
+        coVerify { gitHubRepository.searchRepositories(any(), any()) }
     }
 
     @Test
@@ -464,8 +453,8 @@ class SearchViewModelTest {
         val page1Result = SearchResult(totalCount = 10, items = (1..5).map { i ->
             Repository(id = i.toLong(), name = "repo$i", fullName = "user/repo$i", owner = Owner(1, "user"))
         })
-        whenever(gitHubRepository.searchRepositories("kotlin", page = 1)).thenReturn(Result.success(page1Result))
-        whenever(gitHubRepository.searchRepositories("kotlin", page = 2)).thenReturn(Result.failure(RuntimeException("Network error")))
+        coEvery { gitHubRepository.searchRepositories("kotlin", page = 1) } returns Result.success(page1Result)
+        coEvery { gitHubRepository.searchRepositories("kotlin", page = 2) } returns Result.failure(RuntimeException("Network error"))
 
         val viewModel = SearchViewModel(gitHubRepository)
         viewModel.onQueryChanged("kotlin")
@@ -483,8 +472,8 @@ class SearchViewModelTest {
 
     @Test
     fun `user search failure with empty cache sets error`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.searchUsers(any(), any())).thenReturn(Result.failure(RuntimeException("Error")))
-        whenever(gitHubRepository.searchUsersInCache(any())).thenReturn(emptyList())
+        coEvery { gitHubRepository.searchUsers(any(), any()) } returns Result.failure(RuntimeException("Error"))
+        coEvery { gitHubRepository.searchUsersInCache(any()) } returns emptyList()
 
         val viewModel = SearchViewModel(gitHubRepository)
         viewModel.toggleSearchType(false)
@@ -511,7 +500,7 @@ class SearchViewModelTest {
         viewModel.setSortBy("forks")
         advanceUntilIdle()
 
-        verify(gitHubRepository, atLeast(2)).searchRepositories(any(), any())
+        coVerify(atLeast = 2) { gitHubRepository.searchRepositories(any(), any()) }
     }
 
     @Test
@@ -525,7 +514,7 @@ class SearchViewModelTest {
         viewModel.setLanguageFilter("Kotlin")
         advanceUntilIdle()
 
-        verify(gitHubRepository, atLeast(2)).searchRepositories(any(), any())
+        coVerify(atLeast = 2) { gitHubRepository.searchRepositories(any(), any()) }
     }
 
     @Test
@@ -537,8 +526,8 @@ class SearchViewModelTest {
             User(id = i.toLong(), login = "user$i")
         })
 
-        whenever(gitHubRepository.searchUsers("test", page = 1)).thenReturn(Result.success(page1Result))
-        whenever(gitHubRepository.searchUsers("test", page = 2)).thenReturn(Result.success(page2Result))
+        coEvery { gitHubRepository.searchUsers("test", page = 1) } returns Result.success(page1Result)
+        coEvery { gitHubRepository.searchUsers("test", page = 2) } returns Result.success(page2Result)
 
         val viewModel = SearchViewModel(gitHubRepository)
         viewModel.toggleSearchType(false)

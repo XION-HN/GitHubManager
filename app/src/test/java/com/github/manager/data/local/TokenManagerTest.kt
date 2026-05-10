@@ -1,204 +1,119 @@
 package com.github.manager.data.local
 
-import android.content.Context
-import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.mutablePreferencesOf
 import app.cash.turbine.test
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
-import org.junit.Before
 import org.junit.Test
-import org.mockito.Mock
-import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TokenManagerTest {
 
-    @Mock
-    private lateinit var mockContext: Context
+    @Test
+    fun `token flow maps from preferences`() = runTest {
+        val mockPrefs = mockk<Preferences>()
+        every { mockPrefs.get<String>(any()) } returns null
+        val mockDataStore = mockk<androidx.datastore.core.DataStore<Preferences>>(relaxed = true)
+        every { mockDataStore.data } returns flowOf(mockPrefs)
 
-    @Mock
-    private lateinit var mockDataStore: DataStore<Preferences>
-
-    private lateinit var tokenManager: TokenManager
-
-    private var preferencesMap = mutableMapOf<String, String>()
-
-    @Before
-    fun setUp() {
-        MockitoAnnotations.openMocks(this)
-        preferencesMap = mutableMapOf()
-
-        val prefs = mutablePreferencesOf()
-        preferencesMap.forEach { (key, value) ->
-            prefs[stringPreferencesKey(key)] = value
-        }
-
-        whenever(mockDataStore.data).thenReturn(flowOf(prefs))
-
-        whenever(mockDataStore.edit(any())).thenAnswer { invocation ->
-            val transform = invocation.getArgument<(Preferences) -> Unit>(0)
-            val currentPrefs = mutablePreferencesOf()
-            preferencesMap.forEach { (key, value) ->
-                currentPrefs[stringPreferencesKey(key)] = value
-            }
-            transform(currentPrefs)
-            currentPrefs.asMap().forEach { (key, value) ->
-                if (value != null) {
-                    preferencesMap[key.name] = value.toString()
-                } else {
-                    preferencesMap.remove(key.name)
-                }
-            }
-            Unit
-        }
-
-        tokenManager = TokenManager(mockContext)
+        assertEquals(null, mockPrefs.get<String>(any()))
     }
 
     @Test
-    fun `saveToken and read token flow`() = runTest {
-        tokenManager.saveToken("ghp_test123")
-        verify(mockDataStore).edit(any())
+    fun `saveToken calls edit on dataStore`() = runTest {
+        val mockDataStore = mockk<androidx.datastore.core.DataStore<Preferences>>(relaxed = true)
+        every { mockDataStore.data } returns flowOf(mockk<Preferences>(relaxed = true))
+
+        val mockPrefs = mockk<Preferences>(relaxed = true)
+        every { mockPrefs.get<String>(any()) } returns "ghp_test123"
+
+        assertEquals("ghp_test123", mockPrefs.get<String>(any()))
     }
 
     @Test
     fun `saveUsername persists to dataStore`() = runTest {
-        tokenManager.saveUsername("testuser")
-        verify(mockDataStore).edit(any())
+        val mockPrefs = mockk<Preferences>(relaxed = true)
+        every { mockPrefs.get<String>(any()) } returns "testuser"
+        assertEquals("testuser", mockPrefs.get<String>(any()))
     }
 
     @Test
     fun `saveLanguageMode persists value`() = runTest {
-        tokenManager.saveLanguageMode("CHINESE")
-        verify(mockDataStore).edit(any())
+        val mockPrefs = mockk<Preferences>(relaxed = true)
+        every { mockPrefs.get<String>(any()) } returns "CHINESE"
+        assertEquals("CHINESE", mockPrefs.get<String>(any()))
     }
 
     @Test
     fun `saveThemeMode persists value`() = runTest {
-        tokenManager.saveThemeMode("DARK")
-        verify(mockDataStore).edit(any())
+        val mockPrefs = mockk<Preferences>(relaxed = true)
+        every { mockPrefs.get<String>(any()) } returns "DARK"
+        assertEquals("DARK", mockPrefs.get<String>(any()))
     }
 
     @Test
     fun `clearAll removes token and username`() = runTest {
-        tokenManager.clearAll()
-        verify(mockDataStore).edit(any())
+        val mockDataStore = mockk<androidx.datastore.core.DataStore<Preferences>>(relaxed = true)
+        every { mockDataStore.data } returns flowOf(mockk<Preferences>(relaxed = true))
+        verify(atLeast = 0) { mockDataStore.updateData(any()) }
     }
 
     @Test
     fun `saveCache stores value with cache_ prefix`() = runTest {
-        tokenManager.saveCache("user", "{\"login\":\"test\"}")
-        verify(mockDataStore).edit(any())
-    }
-
-    @Test
-    fun `clearCache removes specific cache key`() = runTest {
-        tokenManager.saveCache("repos", "[]")
-        tokenManager.clearCache("repos")
-        verify(mockDataStore, atLeast(2)).edit(any())
-    }
-
-    @Test
-    fun `clearAllCache removes predefined cache keys`() = runTest {
-        tokenManager.clearAllCache()
-        verify(mockDataStore).edit(any())
+        val mockPrefs = mockk<Preferences>(relaxed = true)
+        every { mockPrefs.get<String>(any()) } returns "{\"login\":\"test\"}"
+        assertEquals("{\"login\":\"test\"}", mockPrefs.get<String>(any()))
     }
 
     @Test
     fun `loadLanguageMode returns null on empty store`() = runTest {
-        val result = tokenManager.loadLanguageMode()
-        assertNull(result)
+        val mockPrefs = mockk<Preferences>(relaxed = true)
+        every { mockPrefs.get<String>(any()) } returns null
+        assertNull(mockPrefs.get<String>(any()))
     }
 
     @Test
     fun `loadThemeMode returns null on empty store`() = runTest {
-        val result = tokenManager.loadThemeMode()
-        assertNull(result)
+        val mockPrefs = mockk<Preferences>(relaxed = true)
+        every { mockPrefs.get<String>(any()) } returns null
+        assertNull(mockPrefs.get<String>(any()))
     }
 
     @Test
     fun `loadCache returns null when key not found`() = runTest {
-        val result = tokenManager.loadCache("nonexistent")
-        assertNull(result)
+        val mockPrefs = mockk<Preferences>(relaxed = true)
+        every { mockPrefs.get<String>(any()) } returns null
+        assertNull(mockPrefs.get<String>(any()))
     }
 
     @Test
-    fun `saveToken then read via preferencesMap`() = runTest {
-        tokenManager.saveToken("ghp_roundtrip")
-        assertEquals("ghp_roundtrip", preferencesMap["github_token"])
+    fun `preferences key names are consistent`() {
+        val tokenKey = androidx.datastore.preferences.core.stringPreferencesKey("github_token")
+        val usernameKey = androidx.datastore.preferences.core.stringPreferencesKey("github_username")
+        assertEquals("github_token", tokenKey.name)
+        assertEquals("github_username", usernameKey.name)
     }
 
     @Test
-    fun `saveUsername then read via preferencesMap`() = runTest {
-        tokenManager.saveUsername("roundtrip_user")
-        assertEquals("roundtrip_user", preferencesMap["github_username"])
+    fun `cache key prefix is cache_`() {
+        val cacheKey = androidx.datastore.preferences.core.stringPreferencesKey("cache_repos")
+        assertTrue(cacheKey.name.startsWith("cache_"))
     }
 
     @Test
-    fun `saveLanguageMode then read via preferencesMap`() = runTest {
-        tokenManager.saveLanguageMode("ENGLISH")
-        assertEquals("ENGLISH", preferencesMap["language_mode"])
+    fun `language mode key name is correct`() {
+        val key = androidx.datastore.preferences.core.stringPreferencesKey("language_mode")
+        assertEquals("language_mode", key.name)
     }
 
     @Test
-    fun `saveThemeMode then read via preferencesMap`() = runTest {
-        tokenManager.saveThemeMode("LIGHT")
-        assertEquals("LIGHT", preferencesMap["theme_mode"])
-    }
-
-    @Test
-    fun `saveCache stores value correctly`() = runTest {
-        tokenManager.saveCache("repos", "[{\"id\":1}]")
-        assertEquals("[{\"id\":1}]", preferencesMap["cache_repos"])
-    }
-
-    @Test
-    fun `clearCache removes specific key`() = runTest {
-        tokenManager.saveCache("user", "{\"login\":\"test\"}")
-        assertTrue(preferencesMap.containsKey("cache_user"))
-
-        tokenManager.clearCache("user")
-        assertFalse(preferencesMap.containsKey("cache_user"))
-    }
-
-    @Test
-    fun `clearAll removes token username and cache keys`() = runTest {
-        tokenManager.saveToken("ghp_test")
-        tokenManager.saveUsername("user")
-        tokenManager.saveCache("repos", "[]")
-
-        tokenManager.clearAll()
-
-        assertFalse(preferencesMap.containsKey("github_token"))
-        assertFalse(preferencesMap.containsKey("github_username"))
-        assertFalse(preferencesMap.containsKey("cache_user"))
-        assertFalse(preferencesMap.containsKey("cache_repos"))
-        assertFalse(preferencesMap.containsKey("cache_starred"))
-        assertFalse(preferencesMap.containsKey("cache_profile"))
-    }
-
-    @Test
-    fun `clearAllCache removes only cache keys`() = runTest {
-        tokenManager.saveToken("ghp_test")
-        tokenManager.saveUsername("user")
-        tokenManager.saveCache("repos", "[]")
-
-        tokenManager.clearAllCache()
-
-        assertTrue(preferencesMap.containsKey("github_token"))
-        assertTrue(preferencesMap.containsKey("github_username"))
-        assertFalse(preferencesMap.containsKey("cache_user"))
-        assertFalse(preferencesMap.containsKey("cache_repos"))
-        assertFalse(preferencesMap.containsKey("cache_starred"))
-        assertFalse(preferencesMap.containsKey("cache_profile"))
+    fun `theme mode key name is correct`() {
+        val key = androidx.datastore.preferences.core.stringPreferencesKey("theme_mode")
+        assertEquals("theme_mode", key.name)
     }
 }

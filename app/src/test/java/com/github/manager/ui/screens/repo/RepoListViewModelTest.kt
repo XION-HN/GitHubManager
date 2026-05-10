@@ -6,6 +6,10 @@ import com.github.manager.data.model.Owner
 import com.github.manager.data.model.Repository
 import com.github.manager.data.model.User
 import com.github.manager.data.repository.GitHubRepository
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -18,18 +22,12 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mock
-import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RepoListViewModelTest {
 
-    @Mock
-    private lateinit var gitHubRepository: GitHubRepository
-
-    @Mock
-    private lateinit var tokenManager: TokenManager
+    private val gitHubRepository: GitHubRepository = mockk()
+    private val tokenManager: TokenManager = mockk(relaxed = true)
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -43,12 +41,11 @@ class RepoListViewModelTest {
 
     @Before
     fun setUp() {
-        MockitoAnnotations.openMocks(this)
         Dispatchers.setMain(testDispatcher)
 
-        whenever(gitHubRepository.getAuthenticatedUser()).thenReturn(Result.success(testUser))
-        whenever(gitHubRepository.getUserRepos(any())).thenReturn(Result.success(testRepos))
-        whenever(gitHubRepository.getStarredRepos(any())).thenReturn(Result.success(testRepos))
+        coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.success(testUser)
+        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.success(testRepos)
+        coEvery { gitHubRepository.getStarredRepos(any()) } returns Result.success(testRepos)
     }
 
     @After
@@ -71,7 +68,7 @@ class RepoListViewModelTest {
 
     @Test
     fun `loadRepos sets hasMore to true when perPage items returned`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getUserRepos(any())).thenReturn(Result.success(fullRepos))
+        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.success(fullRepos)
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -84,7 +81,7 @@ class RepoListViewModelTest {
 
     @Test
     fun `loadRepos sets hasMore to false when fewer items returned`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getUserRepos(any())).thenReturn(Result.success(testRepos))
+        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.success(testRepos)
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -97,7 +94,7 @@ class RepoListViewModelTest {
 
     @Test
     fun `loadRepos failure sets error`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getUserRepos(any())).thenReturn(Result.failure(RuntimeException("API error")))
+        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.failure(RuntimeException("API error"))
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -117,13 +114,13 @@ class RepoListViewModelTest {
         viewModel.refresh()
         advanceUntilIdle()
 
-        verify(gitHubRepository, atLeast(2)).getAuthenticatedUser()
-        verify(gitHubRepository, atLeast(2)).getUserRepos(any())
+        coVerify(atLeast = 2) { gitHubRepository.getAuthenticatedUser() }
+        coVerify(atLeast = 2) { gitHubRepository.getUserRepos(any()) }
     }
 
     @Test
     fun `loadMore appends repos`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getUserRepos(any())).thenReturn(Result.success(fullRepos))
+        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.success(fullRepos)
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -139,7 +136,7 @@ class RepoListViewModelTest {
 
     @Test
     fun `loadMore does nothing when hasMore is false`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getUserRepos(any())).thenReturn(Result.success(testRepos))
+        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.success(testRepos)
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -184,7 +181,7 @@ class RepoListViewModelTest {
 
     @Test
     fun `starRepo adds to starredRepos optimistically`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.starRepository(any(), any())).thenReturn(Result.success(true))
+        coEvery { gitHubRepository.starRepository(any(), any()) } returns Result.success(true)
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -200,7 +197,7 @@ class RepoListViewModelTest {
 
     @Test
     fun `starRepo failure reverts optimistic update`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.starRepository(any(), any())).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.starRepository(any(), any()) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -216,7 +213,7 @@ class RepoListViewModelTest {
 
     @Test
     fun `unstarRepo removes from starredRepos optimistically`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.unstarRepository(any(), any())).thenReturn(Result.success(true))
+        coEvery { gitHubRepository.unstarRepository(any(), any()) } returns Result.success(true)
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -232,7 +229,7 @@ class RepoListViewModelTest {
 
     @Test
     fun `unstarRepo failure reverts optimistic update`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.unstarRepository(any(), any())).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.unstarRepository(any(), any()) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -249,9 +246,9 @@ class RepoListViewModelTest {
 
     @Test
     fun `forkRepo calls repository and reloads`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.forkRepository(any(), any())).thenReturn(Result.success(
+        coEvery { gitHubRepository.forkRepository(any(), any()) } returns Result.success(
             Repository(id = 99, name = "forked", fullName = "testuser/forked", owner = Owner(1, "testuser"), fork = true)
-        ))
+        )
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -259,12 +256,12 @@ class RepoListViewModelTest {
         viewModel.forkRepo("other", "repo")
         advanceUntilIdle()
 
-        verify(gitHubRepository).forkRepository("other", "repo")
+        coVerify { gitHubRepository.forkRepository("other", "repo") }
     }
 
     @Test
     fun `deleteRepo calls repository and reloads`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.deleteRepository(any(), any())).thenReturn(Result.success(true))
+        coEvery { gitHubRepository.deleteRepository(any(), any()) } returns Result.success(true)
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -272,14 +269,14 @@ class RepoListViewModelTest {
         viewModel.deleteRepo("testuser", "repo1")
         advanceUntilIdle()
 
-        verify(gitHubRepository).deleteRepository("testuser", "repo1")
+        coVerify { gitHubRepository.deleteRepository("testuser", "repo1") }
     }
 
     @Test
     fun `createRepo calls repository and reloads`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.createRepository(any(), any(), any())).thenReturn(Result.success(
+        coEvery { gitHubRepository.createRepository(any(), any(), any()) } returns Result.success(
             Repository(id = 100, name = "new-repo", fullName = "testuser/new-repo", owner = Owner(1, "testuser"))
-        ))
+        )
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -287,7 +284,7 @@ class RepoListViewModelTest {
         viewModel.createRepo("new-repo", "desc", false)
         advanceUntilIdle()
 
-        verify(gitHubRepository).createRepository("new-repo", "desc", false)
+        coVerify { gitHubRepository.createRepository("new-repo", "desc", false) }
     }
 
     @Test
@@ -298,12 +295,12 @@ class RepoListViewModelTest {
         viewModel.logout()
         advanceUntilIdle()
 
-        verify(tokenManager).clearAll()
+        coVerify { tokenManager.clearAll() }
     }
 
     @Test
     fun `createRepo failure still calls repository`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.createRepository(any(), any(), any())).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.createRepository(any(), any(), any()) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -311,12 +308,12 @@ class RepoListViewModelTest {
         viewModel.createRepo("new-repo", "desc", false)
         advanceUntilIdle()
 
-        verify(gitHubRepository).createRepository("new-repo", "desc", false)
+        coVerify { gitHubRepository.createRepository("new-repo", "desc", false) }
     }
 
     @Test
     fun `forkRepo failure still calls repository`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.forkRepository(any(), any())).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.forkRepository(any(), any()) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -324,12 +321,12 @@ class RepoListViewModelTest {
         viewModel.forkRepo("other", "repo")
         advanceUntilIdle()
 
-        verify(gitHubRepository).forkRepository("other", "repo")
+        coVerify { gitHubRepository.forkRepository("other", "repo") }
     }
 
     @Test
     fun `deleteRepo failure still calls repository`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.deleteRepository(any(), any())).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.deleteRepository(any(), any()) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -337,13 +334,13 @@ class RepoListViewModelTest {
         viewModel.deleteRepo("testuser", "repo1")
         advanceUntilIdle()
 
-        verify(gitHubRepository).deleteRepository("testuser", "repo1")
+        coVerify { gitHubRepository.deleteRepository("testuser", "repo1") }
     }
 
     @Test
     fun `loadMore failure does not crash`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getUserRepos(page = 1)).thenReturn(Result.success(fullRepos))
-        whenever(gitHubRepository.getUserRepos(page = 2)).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.getUserRepos(page = 1) } returns Result.success(fullRepos)
+        coEvery { gitHubRepository.getUserRepos(page = 2) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -362,7 +359,7 @@ class RepoListViewModelTest {
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
 
-        whenever(gitHubRepository.getUserRepos(any())).thenReturn(Result.failure(RuntimeException("Refresh error")))
+        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.failure(RuntimeException("Refresh error"))
         viewModel.refresh()
         advanceUntilIdle()
 
@@ -374,7 +371,7 @@ class RepoListViewModelTest {
 
     @Test
     fun `loadProfile failure sets error`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getAuthenticatedUser()).thenReturn(Result.failure(RuntimeException("Profile error")))
+        coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.failure(RuntimeException("Profile error"))
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -393,12 +390,12 @@ class RepoListViewModelTest {
         viewModel.toggleTab(true)
         advanceUntilIdle()
 
-        verify(gitHubRepository).getStarredRepos(any())
+        coVerify { gitHubRepository.getStarredRepos(any()) }
     }
 
     @Test
     fun `starRepo does not double-add if already starred`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.starRepository(any(), any())).thenReturn(Result.success(true))
+        coEvery { gitHubRepository.starRepository(any(), any()) } returns Result.success(true)
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()

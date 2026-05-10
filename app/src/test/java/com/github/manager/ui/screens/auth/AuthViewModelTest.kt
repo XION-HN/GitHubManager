@@ -4,45 +4,40 @@ import app.cash.turbine.test
 import com.github.manager.data.local.TokenManager
 import com.github.manager.data.model.User
 import com.github.manager.data.repository.GitHubRepository
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import kotlinx.coroutines.test.resetMain
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mock
-import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.*
-import kotlinx.coroutines.Dispatchers
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthViewModelTest {
 
-    @Mock
-    private lateinit var tokenManager: TokenManager
-
-    @Mock
-    private lateinit var gitHubRepository: GitHubRepository
+    private val tokenManager: TokenManager = mockk(relaxed = true)
+    private val gitHubRepository: GitHubRepository = mockk()
 
     private lateinit var viewModel: AuthViewModel
     private val testDispatcher = StandardTestDispatcher()
 
     @Before
     fun setUp() {
-        MockitoAnnotations.openMocks(this)
         Dispatchers.setMain(testDispatcher)
 
-        whenever(tokenManager.token).thenReturn(flowOf(null))
+        every { tokenManager.token } returns flowOf(null)
 
         val user = User(id = 1, login = "testuser", name = "Test User")
-        whenever(gitHubRepository.getAuthenticatedUser()).thenReturn(Result.success(user))
+        coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.success(user)
     }
 
     @After
@@ -57,7 +52,7 @@ class AuthViewModelTest {
 
     @Test
     fun `init with saved token validates automatically`() = runTest(testDispatcher) {
-        whenever(tokenManager.token).thenReturn(flowOf("ghp_saved_token"))
+        every { tokenManager.token } returns flowOf("ghp_saved_token")
 
         createViewModel()
         advanceUntilIdle()
@@ -70,7 +65,7 @@ class AuthViewModelTest {
 
     @Test
     fun `init without saved token does not auto authenticate`() = runTest(testDispatcher) {
-        whenever(tokenManager.token).thenReturn(flowOf(null))
+        every { tokenManager.token } returns flowOf(null)
 
         createViewModel()
         advanceUntilIdle()
@@ -112,7 +107,7 @@ class AuthViewModelTest {
     fun `login with whitespace-only token shows error`() = runTest(testDispatcher) {
         createViewModel()
 
-        viewModel.onTokenChanged("   ")
+        viewModel.onTokenChanged(" ")
         viewModel.login()
 
         viewModel.uiState.test {
@@ -136,12 +131,12 @@ class AuthViewModelTest {
             assertNull(state.error)
         }
 
-        verify(tokenManager).saveToken("ghp_valid_token")
+        coVerify { tokenManager.saveToken("ghp_valid_token") }
     }
 
     @Test
     fun `login failure shows error`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getAuthenticatedUser()).thenReturn(Result.failure(RuntimeException("Invalid token")))
+        coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.failure(RuntimeException("Invalid token"))
 
         createViewModel()
 
@@ -164,7 +159,7 @@ class AuthViewModelTest {
         viewModel.logout()
         advanceUntilIdle()
 
-        verify(tokenManager).clearAll()
+        coVerify { tokenManager.clearAll() }
 
         viewModel.uiState.test {
             val state = awaitItem()
@@ -195,8 +190,8 @@ class AuthViewModelTest {
         viewModel.login()
         advanceUntilIdle()
 
-        verify(tokenManager).saveToken("ghp_test")
-        verify(gitHubRepository).getAuthenticatedUser()
+        coVerify { tokenManager.saveToken("ghp_test") }
+        coVerify { gitHubRepository.getAuthenticatedUser() }
     }
 
     @Test
@@ -221,8 +216,8 @@ class AuthViewModelTest {
 
     @Test
     fun `init with invalid saved token sets error`() = runTest(testDispatcher) {
-        whenever(tokenManager.token).thenReturn(flowOf("ghp_invalid_token"))
-        whenever(gitHubRepository.getAuthenticatedUser()).thenReturn(Result.failure(RuntimeException("Invalid token")))
+        every { tokenManager.token } returns flowOf("ghp_invalid_token")
+        coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.failure(RuntimeException("Invalid token"))
 
         createViewModel()
         advanceUntilIdle()

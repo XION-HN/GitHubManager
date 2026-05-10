@@ -8,6 +8,10 @@ import com.github.manager.ui.i18n.LanguageMode
 import com.github.manager.ui.i18n.ThemeMode
 import com.github.manager.ui.i18n.languageModeState
 import com.github.manager.ui.i18n.themeModeState
+import io.mockk.atLeast
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -18,19 +22,14 @@ import kotlinx.coroutines.Dispatchers
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
-    import org.junit.Test
-import org.mockito.Mock
-import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.*
+import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AccountViewModelTest {
 
-    @Mock
-    private lateinit var gitHubRepository: GitHubRepository
+    private val gitHubRepository: GitHubRepository = mockk()
 
-    @Mock
-    private lateinit var tokenManager: TokenManager
+    private val tokenManager: TokenManager = mockk(relaxed = true)
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -42,12 +41,11 @@ class AccountViewModelTest {
 
     @Before
     fun setUp() {
-        MockitoAnnotations.openMocks(this)
         Dispatchers.setMain(testDispatcher)
 
-        whenever(gitHubRepository.getAuthenticatedUser()).thenReturn(Result.success(testUser))
-        whenever(tokenManager.loadLanguageMode()).thenReturn(null)
-        whenever(tokenManager.loadThemeMode()).thenReturn(null)
+        coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.success(testUser)
+        coEvery { tokenManager.loadLanguageMode() } returns null
+        coEvery { tokenManager.loadThemeMode() } returns null
 
         languageModeState.value = LanguageMode.BILINGUAL
         themeModeState.value = ThemeMode.SYSTEM
@@ -71,8 +69,8 @@ class AccountViewModelTest {
             assertFalse(state.isLoading)
         }
 
-        verify(tokenManager).loadLanguageMode()
-        verify(tokenManager).loadThemeMode()
+        coVerify { tokenManager.loadLanguageMode() }
+        coVerify { tokenManager.loadThemeMode() }
     }
 
     @Test
@@ -91,7 +89,7 @@ class AccountViewModelTest {
 
     @Test
     fun `loadProfile failure sets error`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getAuthenticatedUser()).thenReturn(Result.failure(RuntimeException("Network error")))
+        coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.failure(RuntimeException("Network error"))
 
         val viewModel = AccountViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -131,12 +129,12 @@ class AccountViewModelTest {
         viewModel.logout()
         advanceUntilIdle()
 
-        verify(tokenManager).clearAll()
+        coVerify { tokenManager.clearAll() }
     }
 
     @Test
     fun `switchAccount clears old data and saves new token`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getAuthenticatedUser()).thenReturn(Result.success(testUser))
+        coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.success(testUser)
 
         val viewModel = AccountViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -144,9 +142,9 @@ class AccountViewModelTest {
         viewModel.switchAccount("ghp_new_token")
         advanceUntilIdle()
 
-        verify(tokenManager).clearAll()
-        verify(tokenManager).saveToken("ghp_new_token")
-        verify(gitHubRepository, atLeast(2)).getAuthenticatedUser()
+        coVerify { tokenManager.clearAll() }
+        coVerify { tokenManager.saveToken("ghp_new_token") }
+        coVerify(atLeast = 2) { gitHubRepository.getAuthenticatedUser() }
     }
 
     @Test
@@ -157,7 +155,7 @@ class AccountViewModelTest {
         viewModel.saveLanguageMode("CHINESE")
         advanceUntilIdle()
 
-        verify(tokenManager).saveLanguageMode("CHINESE")
+        coVerify { tokenManager.saveLanguageMode("CHINESE") }
     }
 
     @Test
@@ -168,13 +166,13 @@ class AccountViewModelTest {
         viewModel.saveThemeMode("DARK")
         advanceUntilIdle()
 
-        verify(tokenManager).saveThemeMode("DARK")
+        coVerify { tokenManager.saveThemeMode("DARK") }
     }
 
     @Test
     fun `loadPreferences applies Chinese language mode`() = runTest(testDispatcher) {
-        whenever(tokenManager.loadLanguageMode()).thenReturn("CHINESE")
-        whenever(tokenManager.loadThemeMode()).thenReturn(null)
+        coEvery { tokenManager.loadLanguageMode() } returns "CHINESE"
+        coEvery { tokenManager.loadThemeMode() } returns null
 
         val viewModel = AccountViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -184,7 +182,7 @@ class AccountViewModelTest {
 
     @Test
     fun `loadPreferences applies English language mode`() = runTest(testDispatcher) {
-        whenever(tokenManager.loadLanguageMode()).thenReturn("ENGLISH")
+        coEvery { tokenManager.loadLanguageMode() } returns "ENGLISH"
 
         val viewModel = AccountViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -194,7 +192,7 @@ class AccountViewModelTest {
 
     @Test
     fun `loadPreferences defaults to Bilingual for unknown language`() = runTest(testDispatcher) {
-        whenever(tokenManager.loadLanguageMode()).thenReturn("UNKNOWN")
+        coEvery { tokenManager.loadLanguageMode() } returns "UNKNOWN"
 
         val viewModel = AccountViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -204,7 +202,7 @@ class AccountViewModelTest {
 
     @Test
     fun `loadPreferences applies Light theme mode`() = runTest(testDispatcher) {
-        whenever(tokenManager.loadThemeMode()).thenReturn("LIGHT")
+        coEvery { tokenManager.loadThemeMode() } returns "LIGHT"
 
         val viewModel = AccountViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -214,7 +212,7 @@ class AccountViewModelTest {
 
     @Test
     fun `loadPreferences applies Dark theme mode`() = runTest(testDispatcher) {
-        whenever(tokenManager.loadThemeMode()).thenReturn("DARK")
+        coEvery { tokenManager.loadThemeMode() } returns "DARK"
 
         val viewModel = AccountViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -224,7 +222,7 @@ class AccountViewModelTest {
 
     @Test
     fun `loadPreferences defaults to System for unknown theme`() = runTest(testDispatcher) {
-        whenever(tokenManager.loadThemeMode()).thenReturn("UNKNOWN")
+        coEvery { tokenManager.loadThemeMode() } returns "UNKNOWN"
 
         val viewModel = AccountViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -234,8 +232,8 @@ class AccountViewModelTest {
 
     @Test
     fun `switchAccount failure sets error`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getAuthenticatedUser()).thenReturn(Result.success(testUser))
-        whenever(tokenManager.clearAll()).thenThrow(RuntimeException("DataStore error"))
+        coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.success(testUser)
+        coEvery { tokenManager.clearAll() } throws RuntimeException("DataStore error")
 
         val viewModel = AccountViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -251,7 +249,7 @@ class AccountViewModelTest {
 
     @Test
     fun `loadProfile failure clears user`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getAuthenticatedUser()).thenReturn(Result.failure(RuntimeException("API Error")))
+        coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.failure(RuntimeException("API Error"))
 
         val viewModel = AccountViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -273,7 +271,7 @@ class AccountViewModelTest {
         advanceUntilIdle()
 
         assertEquals(LanguageMode.ENGLISH, languageModeState.value)
-        verify(tokenManager).saveLanguageMode("ENGLISH")
+        coVerify { tokenManager.saveLanguageMode("ENGLISH") }
     }
 
     @Test
@@ -285,6 +283,6 @@ class AccountViewModelTest {
         advanceUntilIdle()
 
         assertEquals(ThemeMode.DARK, themeModeState.value)
-        verify(tokenManager).saveThemeMode("DARK")
+        coVerify { tokenManager.saveThemeMode("DARK") }
     }
 }

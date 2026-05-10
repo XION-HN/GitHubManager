@@ -3,6 +3,12 @@ package com.github.manager.ui.screens.repo
 import app.cash.turbine.test
 import com.github.manager.data.model.*
 import com.github.manager.data.repository.GitHubRepository
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.any
+import io.mockk.eq
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -13,16 +19,12 @@ import kotlinx.coroutines.Dispatchers
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
-    import org.junit.Test
-import org.mockito.Mock
-import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.*
+import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RepoDetailViewModelTest {
 
-    @Mock
-    private lateinit var gitHubRepository: GitHubRepository
+    private val gitHubRepository: GitHubRepository = mockk()
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -65,20 +67,19 @@ class RepoDetailViewModelTest {
 
     @Before
     fun setUp() {
-        MockitoAnnotations.openMocks(this)
         Dispatchers.setMain(testDispatcher)
 
-        whenever(gitHubRepository.getRepository("owner", "test-repo")).thenReturn(Result.success(testRepo))
-        whenever(gitHubRepository.checkStarred("owner", "test-repo")).thenReturn(Result.success(true))
-        whenever(gitHubRepository.getCommits(any(), any(), any(), any())).thenReturn(Result.success(testCommits))
-        whenever(gitHubRepository.getIssues(any(), any(), any(), any())).thenReturn(Result.success(testIssues))
-        whenever(gitHubRepository.getPullRequests(any(), any(), any(), any())).thenReturn(Result.success(testPRs))
-        whenever(gitHubRepository.getBranches(any(), any())).thenReturn(Result.success(testBranches))
-        whenever(gitHubRepository.getWorkflows(any(), any())).thenReturn(Result.success(testWorkflows))
-        whenever(gitHubRepository.getWorkflowRuns(any(), any(), any())).thenReturn(Result.success(testWorkflowRuns))
-        whenever(gitHubRepository.getReleases(any(), any())).thenReturn(Result.success(testReleases))
-        whenever(gitHubRepository.getRepoContent(any(), any(), any(), any())).thenReturn(Result.success(emptyList()))
-        whenever(gitHubRepository.getReadme(any(), any(), any())).thenReturn(Result.success(RepoContent()))
+        coEvery { gitHubRepository.getRepository("owner", "test-repo") } returns Result.success(testRepo)
+        coEvery { gitHubRepository.checkStarred("owner", "test-repo") } returns Result.success(true)
+        coEvery { gitHubRepository.getCommits(any(), any(), any(), any()) } returns Result.success(testCommits)
+        coEvery { gitHubRepository.getIssues(any(), any(), any(), any()) } returns Result.success(testIssues)
+        coEvery { gitHubRepository.getPullRequests(any(), any(), any(), any()) } returns Result.success(testPRs)
+        coEvery { gitHubRepository.getBranches(any(), any()) } returns Result.success(testBranches)
+        coEvery { gitHubRepository.getWorkflows(any(), any()) } returns Result.success(testWorkflows)
+        coEvery { gitHubRepository.getWorkflowRuns(any(), any(), any()) } returns Result.success(testWorkflowRuns)
+        coEvery { gitHubRepository.getReleases(any(), any()) } returns Result.success(testReleases)
+        coEvery { gitHubRepository.getRepoContent(any(), any(), any(), any()) } returns Result.success(emptyList())
+        coEvery { gitHubRepository.getReadme(any(), any(), any()) } returns Result.success(RepoContent())
     }
 
     @After
@@ -110,7 +111,7 @@ class RepoDetailViewModelTest {
         viewModel.init("owner", "test-repo")
         advanceUntilIdle()
 
-        verify(gitHubRepository, times(1)).getRepository("owner", "test-repo")
+        coVerify(exactly = 1) { gitHubRepository.getRepository("owner", "test-repo") }
     }
 
     @Test
@@ -119,20 +120,20 @@ class RepoDetailViewModelTest {
         viewModel.init("owner", "test-repo")
         advanceUntilIdle()
 
-        whenever(gitHubRepository.getRepository("owner", "other-repo")).thenReturn(Result.success(
+        coEvery { gitHubRepository.getRepository("owner", "other-repo") } returns Result.success(
             testRepo.copy(name = "other-repo", fullName = "owner/other-repo")
-        ))
-        whenever(gitHubRepository.checkStarred("owner", "other-repo")).thenReturn(Result.success(false))
+        )
+        coEvery { gitHubRepository.checkStarred("owner", "other-repo") } returns Result.success(false)
 
         viewModel.init("owner", "other-repo")
         advanceUntilIdle()
 
-        verify(gitHubRepository).getRepository("owner", "other-repo")
+        coVerify { gitHubRepository.getRepository("owner", "other-repo") }
     }
 
     @Test
     fun `toggleStar from starred to unstarred`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.unstarRepository(any(), any())).thenReturn(Result.success(true))
+        coEvery { gitHubRepository.unstarRepository(any(), any()) } returns Result.success(true)
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -149,8 +150,8 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `toggleStar from unstarred to starred`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.checkStarred(any(), any())).thenReturn(Result.success(false))
-        whenever(gitHubRepository.starRepository(any(), any())).thenReturn(Result.success(true))
+        coEvery { gitHubRepository.checkStarred(any(), any()) } returns Result.success(false)
+        coEvery { gitHubRepository.starRepository(any(), any()) } returns Result.success(true)
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -238,7 +239,7 @@ class RepoDetailViewModelTest {
         viewModel.onTabChanged(4)
         advanceUntilIdle()
 
-        verify(gitHubRepository).getRepoContent(eq("owner"), eq("test-repo"), eq(""), any())
+        coVerify { gitHubRepository.getRepoContent(eq("owner"), eq("test-repo"), eq(""), any()) }
     }
 
     @Test
@@ -286,13 +287,14 @@ class RepoDetailViewModelTest {
             assertEquals("develop", state.currentBranch)
         }
 
-        verify(gitHubRepository, atLeast(2)).getCommits(eq("owner"), eq("test-repo"), eq("develop"), any())
+        coVerify(atLeast = 2) { gitHubRepository.getCommits(eq("owner"), eq("test-repo"), eq("develop"), any()) }
     }
 
     @Test
     fun `closeIssue updates issue state`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.updateIssue(any(), any(), any(), state = eq("closed")))
-            .thenReturn(Result.success(Issue(id = 1, number = 1, state = "closed")))
+        coEvery { gitHubRepository.updateIssue(any(), any(), any(), state = eq("closed")) } returns Result.success(
+            Issue(id = 1, number = 1, state = "closed")
+        )
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -309,8 +311,9 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `reopenIssue updates issue state`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.updateIssue(any(), any(), any(), state = eq("open")))
-            .thenReturn(Result.success(Issue(id = 1, number = 1, state = "open")))
+        coEvery { gitHubRepository.updateIssue(any(), any(), any(), state = eq("open")) } returns Result.success(
+            Issue(id = 1, number = 1, state = "open")
+        )
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -327,7 +330,7 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `mergePullRequest updates PR state`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.mergePullRequest(any(), any(), any())).thenReturn(Result.success(true))
+        coEvery { gitHubRepository.mergePullRequest(any(), any(), any()) } returns Result.success(true)
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -345,7 +348,7 @@ class RepoDetailViewModelTest {
     @Test
     fun `loadIssueComments loads comments`() = runTest(testDispatcher) {
         val comments = listOf(IssueComment(id = 1, body = "Nice fix"))
-        whenever(gitHubRepository.getIssueComments("owner", "test-repo", 1)).thenReturn(Result.success(comments))
+        coEvery { gitHubRepository.getIssueComments("owner", "test-repo", 1) } returns Result.success(comments)
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -363,10 +366,9 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `addComment creates comment and reloads`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.createIssueComment(any(), any(), any(), any())).thenReturn(
+        coEvery { gitHubRepository.createIssueComment(any(), any(), any(), any()) } returns
             Result.success(IssueComment(id = 2, body = "New comment"))
-        )
-        whenever(gitHubRepository.getIssueComments(any(), any(), any())).thenReturn(Result.success(emptyList()))
+        coEvery { gitHubRepository.getIssueComments(any(), any(), any()) } returns Result.success(emptyList())
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -378,7 +380,7 @@ class RepoDetailViewModelTest {
         viewModel.addComment("New comment")
         advanceUntilIdle()
 
-        verify(gitHubRepository).createIssueComment("owner", "test-repo", 1, "New comment")
+        coVerify { gitHubRepository.createIssueComment("owner", "test-repo", 1, "New comment") }
     }
 
     @Test
@@ -389,7 +391,7 @@ class RepoDetailViewModelTest {
 
         viewModel.addComment("Comment")
 
-        verify(gitHubRepository, never()).createIssueComment(any(), any(), any(), any())
+        coVerify(exactly = 0) { gitHubRepository.createIssueComment(any(), any(), any(), any()) }
     }
 
     @Test
@@ -413,7 +415,7 @@ class RepoDetailViewModelTest {
             RepoContent(name = "src", type = "dir"),
             RepoContent(name = "build.gradle", type = "file")
         )
-        whenever(gitHubRepository.getRepoContent(any(), any(), eq(""), any())).thenReturn(Result.success(files))
+        coEvery { gitHubRepository.getRepoContent(any(), any(), eq(""), any()) } returns Result.success(files)
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -431,12 +433,12 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `navigateUp goes to parent directory`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getRepoContent(any(), any(), eq("src"), any())).thenReturn(Result.success(
+        coEvery { gitHubRepository.getRepoContent(any(), any(), eq("src"), any()) } returns Result.success(
             listOf(RepoContent(name = "main.kt", type = "file", path = "src/main.kt"))
-        ))
-        whenever(gitHubRepository.getRepoContent(any(), any(), eq(""), any())).thenReturn(Result.success(
+        )
+        coEvery { gitHubRepository.getRepoContent(any(), any(), eq(""), any()) } returns Result.success(
             listOf(RepoContent(name = "src", type = "dir", path = "src"))
-        ))
+        )
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -456,7 +458,7 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `dispatchWorkflow triggers workflow`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.dispatchWorkflow(any(), any(), any(), any())).thenReturn(Result.success(true))
+        coEvery { gitHubRepository.dispatchWorkflow(any(), any(), any(), any()) } returns Result.success(true)
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -465,12 +467,12 @@ class RepoDetailViewModelTest {
         viewModel.dispatchWorkflow(1L, "main")
         advanceUntilIdle()
 
-        verify(gitHubRepository).dispatchWorkflow("owner", "test-repo", 1L, "main")
+        coVerify { gitHubRepository.dispatchWorkflow("owner", "test-repo", 1L, "main") }
     }
 
     @Test
     fun `reRunWorkflow calls repository`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.reRunWorkflow(any(), any(), any())).thenReturn(Result.success(true))
+        coEvery { gitHubRepository.reRunWorkflow(any(), any(), any()) } returns Result.success(true)
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -479,12 +481,12 @@ class RepoDetailViewModelTest {
         viewModel.reRunWorkflow(1L)
         advanceUntilIdle()
 
-        verify(gitHubRepository).reRunWorkflow("owner", "test-repo", 1L)
+        coVerify { gitHubRepository.reRunWorkflow("owner", "test-repo", 1L) }
     }
 
     @Test
     fun `cancelWorkflowRun calls repository`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.cancelWorkflowRun(any(), any(), any())).thenReturn(Result.success(true))
+        coEvery { gitHubRepository.cancelWorkflowRun(any(), any(), any()) } returns Result.success(true)
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -493,14 +495,14 @@ class RepoDetailViewModelTest {
         viewModel.cancelWorkflowRun(1L)
         advanceUntilIdle()
 
-        verify(gitHubRepository).cancelWorkflowRun("owner", "test-repo", 1L)
+        coVerify { gitHubRepository.cancelWorkflowRun("owner", "test-repo", 1L) }
     }
 
     @Test
     fun `forkRepo calls repository`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.forkRepository(any(), any())).thenReturn(Result.success(
+        coEvery { gitHubRepository.forkRepository(any(), any()) } returns Result.success(
             Repository(id = 99, name = "test-repo", fullName = "user/test-repo", owner = Owner(1, "user"), fork = true)
-        ))
+        )
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -509,12 +511,12 @@ class RepoDetailViewModelTest {
         viewModel.forkRepo()
         advanceUntilIdle()
 
-        verify(gitHubRepository).forkRepository("owner", "test-repo")
+        coVerify { gitHubRepository.forkRepository("owner", "test-repo") }
     }
 
     @Test
     fun `deleteRepo calls repository`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.deleteRepository(any(), any())).thenReturn(Result.success(true))
+        coEvery { gitHubRepository.deleteRepository(any(), any()) } returns Result.success(true)
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -523,14 +525,14 @@ class RepoDetailViewModelTest {
         viewModel.deleteRepo()
         advanceUntilIdle()
 
-        verify(gitHubRepository).deleteRepository("owner", "test-repo")
+        coVerify { gitHubRepository.deleteRepository("owner", "test-repo") }
     }
 
     @Test
     fun `createIssue calls repository and reloads`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.createIssue(any(), any(), any(), any())).thenReturn(Result.success(
+        coEvery { gitHubRepository.createIssue(any(), any(), any(), any()) } returns Result.success(
             Issue(id = 3, number = 3, title = "New Issue")
-        ))
+        )
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -539,12 +541,12 @@ class RepoDetailViewModelTest {
         viewModel.createIssue("New Issue", "Body")
         advanceUntilIdle()
 
-        verify(gitHubRepository).createIssue("owner", "test-repo", "New Issue", "Body")
+        coVerify { gitHubRepository.createIssue("owner", "test-repo", "New Issue", "Body") }
     }
 
     @Test
     fun `loadCommits failure sets error`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getCommits(any(), any(), any(), any())).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.getCommits(any(), any(), any(), any()) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -558,7 +560,7 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `checkStarred failure sets isStarred to false`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.checkStarred(any(), any())).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.checkStarred(any(), any()) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -572,7 +574,7 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `toggleStar failure keeps current state`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.unstarRepository(any(), any())).thenReturn(Result.failure(RuntimeException("Unstar failed")))
+        coEvery { gitHubRepository.unstarRepository(any(), any()) } returns Result.failure(RuntimeException("Unstar failed"))
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -589,8 +591,9 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `closeIssue failure sets actionMessage`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.updateIssue(any(), any(), any(), state = eq("closed")))
-            .thenReturn(Result.failure(RuntimeException("Update failed")))
+        coEvery { gitHubRepository.updateIssue(any(), any(), any(), state = eq("closed")) } returns Result.failure(
+            RuntimeException("Update failed")
+        )
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -607,7 +610,7 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `mergePullRequest failure sets error`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.mergePullRequest(any(), any(), any())).thenReturn(Result.failure(RuntimeException("Merge conflict")))
+        coEvery { gitHubRepository.mergePullRequest(any(), any(), any()) } returns Result.failure(RuntimeException("Merge conflict"))
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -624,7 +627,7 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `loadIssueComments failure sets error`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getIssueComments("owner", "test-repo", 1)).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.getIssueComments("owner", "test-repo", 1) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -641,8 +644,8 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `addComment failure does not crash`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getIssueComments("owner", "test-repo", 1)).thenReturn(Result.success(emptyList()))
-        whenever(gitHubRepository.createIssueComment(any(), any(), any(), any())).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.getIssueComments("owner", "test-repo", 1) } returns Result.success(emptyList())
+        coEvery { gitHubRepository.createIssueComment(any(), any(), any(), any()) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -654,12 +657,12 @@ class RepoDetailViewModelTest {
         viewModel.addComment("Test comment")
         advanceUntilIdle()
 
-        verify(gitHubRepository).createIssueComment("owner", "test-repo", 1, "Test comment")
+        coVerify { gitHubRepository.createIssueComment("owner", "test-repo", 1, "Test comment") }
     }
 
     @Test
     fun `switchBranch failure sets error`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getCommits(any(), any(), eq("nonexistent"), any())).thenReturn(Result.failure(RuntimeException("Branch not found")))
+        coEvery { gitHubRepository.getCommits(any(), any(), eq("nonexistent"), any()) } returns Result.failure(RuntimeException("Branch not found"))
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -677,7 +680,7 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `loadFiles failure sets error`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getRepoContent(any(), any(), eq("src"), any())).thenReturn(Result.failure(RuntimeException("Not found")))
+        coEvery { gitHubRepository.getRepoContent(any(), any(), eq("src"), any()) } returns Result.failure(RuntimeException("Not found"))
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -694,7 +697,7 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `dispatchWorkflow failure sets actionMessage`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.dispatchWorkflow(any(), any(), any(), any())).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.dispatchWorkflow(any(), any(), any(), any()) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -711,7 +714,7 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `forkRepo failure does not crash`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.forkRepository(any(), any())).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.forkRepository(any(), any()) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -720,12 +723,12 @@ class RepoDetailViewModelTest {
         viewModel.forkRepo()
         advanceUntilIdle()
 
-        verify(gitHubRepository).forkRepository("owner", "test-repo")
+        coVerify { gitHubRepository.forkRepository("owner", "test-repo") }
     }
 
     @Test
     fun `deleteRepo failure does not crash`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.deleteRepository(any(), any())).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.deleteRepository(any(), any()) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -734,12 +737,12 @@ class RepoDetailViewModelTest {
         viewModel.deleteRepo()
         advanceUntilIdle()
 
-        verify(gitHubRepository).deleteRepository("owner", "test-repo")
+        coVerify { gitHubRepository.deleteRepository("owner", "test-repo") }
     }
 
     @Test
     fun `createIssue failure does not crash`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.createIssue(any(), any(), any(), any())).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.createIssue(any(), any(), any(), any()) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -748,12 +751,12 @@ class RepoDetailViewModelTest {
         viewModel.createIssue("New Issue", "Body")
         advanceUntilIdle()
 
-        verify(gitHubRepository).createIssue("owner", "test-repo", "New Issue", "Body")
+        coVerify { gitHubRepository.createIssue("owner", "test-repo", "New Issue", "Body") }
     }
 
     @Test
     fun `loadRepos failure on init sets error`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getRepository("owner", "test-repo")).thenReturn(Result.failure(RuntimeException("Not Found")))
+        coEvery { gitHubRepository.getRepository("owner", "test-repo") } returns Result.failure(RuntimeException("Not Found"))
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -768,9 +771,9 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `onTabChanged loads issues with state filter`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getIssues(any(), any(), eq("closed"), any())).thenReturn(Result.success(
+        coEvery { gitHubRepository.getIssues(any(), any(), eq("closed"), any()) } returns Result.success(
             listOf(Issue(id = 3, number = 3, title = "Closed Bug", state = "closed"))
-        ))
+        )
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -787,9 +790,9 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `onTabChanged sets pr state filter`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.getPullRequests(any(), any(), eq("closed"), any())).thenReturn(Result.success(
+        coEvery { gitHubRepository.getPullRequests(any(), any(), eq("closed"), any()) } returns Result.success(
             listOf(PullRequest(id = 2, number = 2, title = "Merged PR", state = "closed"))
-        ))
+        )
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -812,8 +815,8 @@ class RepoDetailViewModelTest {
         val rootFiles = listOf(RepoContent(name = "src", type = "dir", path = "src"))
         val srcFiles = listOf(RepoContent(name = "Main.kt", type = "file", path = "src/Main.kt"))
 
-        whenever(gitHubRepository.getRepoContent(any(), any(), eq(""), any())).thenReturn(Result.success(rootFiles))
-        whenever(gitHubRepository.getRepoContent(any(), any(), eq("src"), any())).thenReturn(Result.success(srcFiles))
+        coEvery { gitHubRepository.getRepoContent(any(), any(), eq(""), any()) } returns Result.success(rootFiles)
+        coEvery { gitHubRepository.getRepoContent(any(), any(), eq("src"), any()) } returns Result.success(srcFiles)
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -842,13 +845,14 @@ class RepoDetailViewModelTest {
         viewModel.refresh()
         advanceUntilIdle()
 
-        verify(gitHubRepository, atLeast(2)).getCommits(any(), any(), any(), any())
+        coVerify(atLeast = 2) { gitHubRepository.getCommits(any(), any(), any(), any()) }
     }
 
     @Test
     fun `reopenIssue failure sets error`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.updateIssue(any(), any(), any(), state = eq("open")))
-            .thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.updateIssue(any(), any(), any(), state = eq("open")) } returns Result.failure(
+            RuntimeException("Error")
+        )
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -865,7 +869,7 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `cancelWorkflowRun failure sets actionMessage`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.cancelWorkflowRun(any(), any(), any())).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.cancelWorkflowRun(any(), any(), any()) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
@@ -882,7 +886,7 @@ class RepoDetailViewModelTest {
 
     @Test
     fun `reRunWorkflow failure sets actionMessage`() = runTest(testDispatcher) {
-        whenever(gitHubRepository.reRunWorkflow(any(), any(), any())).thenReturn(Result.failure(RuntimeException("Error")))
+        coEvery { gitHubRepository.reRunWorkflow(any(), any(), any()) } returns Result.failure(RuntimeException("Error"))
 
         val viewModel = RepoDetailViewModel(gitHubRepository)
         viewModel.init("owner", "test-repo")
