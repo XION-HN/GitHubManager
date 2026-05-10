@@ -4,7 +4,6 @@ import androidx.datastore.preferences.core.Preferences
 import app.cash.turbine.test
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -17,11 +16,11 @@ class TokenManagerTest {
     @Test
     fun `token flow maps from preferences`() = runTest {
         val mockPrefs = mockk<Preferences>()
-        every { mockPrefs.get<String>(any()) } returns null
+        every { mockPrefs.get<String>(any<Preferences.Key<String>>()) } returns null
         val mockDataStore = mockk<androidx.datastore.core.DataStore<Preferences>>(relaxed = true)
         every { mockDataStore.data } returns flowOf(mockPrefs)
 
-        assertEquals(null, mockPrefs.get<String>(any()))
+        assertEquals(null, mockPrefs.get<String>(any<Preferences.Key<String>>()))
     }
 
     @Test
@@ -30,65 +29,64 @@ class TokenManagerTest {
         every { mockDataStore.data } returns flowOf(mockk<Preferences>(relaxed = true))
 
         val mockPrefs = mockk<Preferences>(relaxed = true)
-        every { mockPrefs.get<String>(any()) } returns "ghp_test123"
+        every { mockPrefs.get<String>(any<Preferences.Key<String>>()) } returns "ghp_test123"
 
-        assertEquals("ghp_test123", mockPrefs.get<String>(any()))
+        assertEquals("ghp_test123", mockPrefs.get<String>(any<Preferences.Key<String>>()))
     }
 
     @Test
     fun `saveUsername persists to dataStore`() = runTest {
         val mockPrefs = mockk<Preferences>(relaxed = true)
-        every { mockPrefs.get<String>(any()) } returns "testuser"
-        assertEquals("testuser", mockPrefs.get<String>(any()))
+        every { mockPrefs.get<String>(any<Preferences.Key<String>>()) } returns "testuser"
+        assertEquals("testuser", mockPrefs.get<String>(any<Preferences.Key<String>>()))
     }
 
     @Test
     fun `saveLanguageMode persists value`() = runTest {
         val mockPrefs = mockk<Preferences>(relaxed = true)
-        every { mockPrefs.get<String>(any()) } returns "CHINESE"
-        assertEquals("CHINESE", mockPrefs.get<String>(any()))
+        every { mockPrefs.get<String>(any<Preferences.Key<String>>()) } returns "CHINESE"
+        assertEquals("CHINESE", mockPrefs.get<String>(any<Preferences.Key<String>>()))
     }
 
     @Test
     fun `saveThemeMode persists value`() = runTest {
         val mockPrefs = mockk<Preferences>(relaxed = true)
-        every { mockPrefs.get<String>(any()) } returns "DARK"
-        assertEquals("DARK", mockPrefs.get<String>(any()))
+        every { mockPrefs.get<String>(any<Preferences.Key<String>>()) } returns "DARK"
+        assertEquals("DARK", mockPrefs.get<String>(any<Preferences.Key<String>>()))
     }
 
     @Test
     fun `clearAll removes token and username`() = runTest {
         val mockDataStore = mockk<androidx.datastore.core.DataStore<Preferences>>(relaxed = true)
         every { mockDataStore.data } returns flowOf(mockk<Preferences>(relaxed = true))
-        verify(atLeast = 0) { mockDataStore.updateData(any()) }
     }
 
     @Test
     fun `saveCache stores value with cache_ prefix`() = runTest {
         val mockPrefs = mockk<Preferences>(relaxed = true)
-        every { mockPrefs.get<String>(any()) } returns "{\"login\":\"test\"}"
-        assertEquals("{\"login\":\"test\"}", mockPrefs.get<String>(any()))
+        every { mockPrefs.get<String>(any<Preferences.Key<String>>()) } returns "{\"login\":\"test\"}"
+        assertEquals("{\"login\":\"test\"}", mockPrefs.get<String>(any<Preferences.Key<String>>()))
     }
 
     @Test
     fun `loadLanguageMode returns null on empty store`() = runTest {
         val mockPrefs = mockk<Preferences>(relaxed = true)
-        every { mockPrefs.get<String>(any()) } returns null
-        assertNull(mockPrefs.get<String>(any()))
+        every { mockPrefs.get<String>(any<Preferences.Key<String>>()) } returns null
+        assertNull(mockPrefs.get<String>(any<Preferences.Key<String>>()))
     }
 
     @Test
     fun `loadThemeMode returns null on empty store`() = runTest {
         val mockPrefs = mockk<Preferences>(relaxed = true)
-        every { mockPrefs.get<String>(any()) } returns null
-        assertNull(mockPrefs.get<String>(any()))
+        every { mockPrefs.get<String>(any<Preferences.Key<String>>()) } returns null
+        assertNull(mockPrefs.get<String>(any<Preferences.Key<String>>()))
     }
 
     @Test
     fun `loadCache returns null when key not found`() = runTest {
         val mockPrefs = mockk<Preferences>(relaxed = true)
-        every { mockPrefs.get<String>(any()) } returns null
-        assertNull(mockPrefs.get<String>(any()))
+        every { mockPrefs.get<String>(any<Preferences.Key<String>>()) } returns null
+        assertNull(mockPrefs.get<String>(any<Preferences.Key<String>>()))
     }
 
     @Test

@@ -3,12 +3,7 @@ package com.github.manager.ui.screens.repo
 import app.cash.turbine.test
 import com.github.manager.data.model.*
 import com.github.manager.data.repository.GitHubRepository
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.any
-import io.mockk.eq
+import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle

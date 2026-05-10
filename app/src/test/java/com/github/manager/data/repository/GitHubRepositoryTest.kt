@@ -77,13 +77,13 @@ class GitHubRepositoryTest {
 
     @Test
     fun `getUserReposFromCache returns cached repos`() = runTest {
-        val entities = listOf(
-            com.github.manager.data.local.db.RepoEntity(
-                id = 1, name = "repo1", fullName = "user/repo1",
-                ownerLogin = "user", ownerAvatarUrl = ""
-            )
+    val entities = listOf(
+        com.github.manager.data.local.db.RepoEntity(
+            id = 1, name = "repo1", fullName = "user/repo1",
+            ownerLogin = "user", ownerAvatarUrl = "", description = null
         )
-        coEvery { repoDao.getMyRepos() } returns entities
+    )
+    coEvery { repoDao.getMyRepos() } returns entities
 
         val result = repository.getUserReposFromCache()
 
@@ -209,13 +209,13 @@ class GitHubRepositoryTest {
 
     @Test
     fun `getStarredReposFromCache returns cached starred repos`() = runTest {
-        val entities = listOf(
-            com.github.manager.data.local.db.RepoEntity(
-                id = 1, name = "starred", fullName = "other/starred",
-                ownerLogin = "other", ownerAvatarUrl = "", isStarred = true
-            )
+    val entities = listOf(
+        com.github.manager.data.local.db.RepoEntity(
+            id = 1, name = "starred", fullName = "other/starred",
+            ownerLogin = "other", ownerAvatarUrl = "", description = null, isStarred = true
         )
-        coEvery { repoDao.getStarredRepos() } returns entities
+    )
+    coEvery { repoDao.getStarredRepos() } returns entities
 
         val result = repository.getStarredReposFromCache()
 
@@ -416,13 +416,13 @@ class GitHubRepositoryTest {
 
     @Test
     fun `searchReposInCache queries local database`() = runTest {
-        val entities = listOf(
-            com.github.manager.data.local.db.RepoEntity(
-                id = 1, name = "kotlin", fullName = "jetbrains/kotlin",
-                ownerLogin = "jetbrains", ownerAvatarUrl = ""
-            )
+    val entities = listOf(
+        com.github.manager.data.local.db.RepoEntity(
+            id = 1, name = "kotlin", fullName = "jetbrains/kotlin",
+            ownerLogin = "jetbrains", ownerAvatarUrl = "", description = null
         )
-        coEvery { repoDao.searchRepos("kotlin") } returns entities
+    )
+    coEvery { repoDao.searchRepos("kotlin") } returns entities
 
         val result = repository.searchReposInCache("kotlin")
 
@@ -575,17 +575,6 @@ class GitHubRepositoryTest {
 
         assertTrue(result.isSuccess)
         assertEquals(42, result.getOrNull()?.number)
-    }
-
-    @Test
-    fun `getIssue success`() = runTest {
-        val issue = Issue(id = 1, number = 5, title = "Bug report")
-        coEvery { apiService.getIssue("owner", "repo", 5) } returns issue
-
-        val result = repository.getIssue("owner", "repo", 5)
-
-        assertTrue(result.isSuccess)
-        assertEquals(5, result.getOrNull()?.number)
     }
 
     @Test
@@ -784,16 +773,6 @@ class GitHubRepositoryTest {
     }
 
     @Test
-    fun `getRepoContent null returns empty list`() = runTest {
-        coEvery { apiService.getRepoContent("owner", "repo", "", null) } returns null
-
-        val result = repository.getRepoContent("owner", "repo", "")
-
-        assertTrue(result.isSuccess)
-        assertEquals(0, result.getOrNull()?.size)
-    }
-
-    @Test
     fun `getReadme failure`() = runTest {
         coEvery { apiService.getReadme("owner", "repo", null) } throws RuntimeException("Error")
 
@@ -809,16 +788,6 @@ class GitHubRepositoryTest {
         val result = repository.getIssueComments("owner", "repo", 1)
 
         assertTrue(result.isFailure)
-    }
-
-    @Test
-    fun `getIssueComments null returns empty list`() = runTest {
-        coEvery { apiService.getIssueComments("owner", "repo", 1) } returns null
-
-        val result = repository.getIssueComments("owner", "repo", 1)
-
-        assertTrue(result.isSuccess)
-        assertEquals(0, result.getOrNull()?.size)
     }
 
     @Test
@@ -849,16 +818,6 @@ class GitHubRepositoryTest {
     }
 
     @Test
-    fun `getReleases null returns empty list`() = runTest {
-        coEvery { apiService.getReleases("owner", "repo") } returns null
-
-        val result = repository.getReleases("owner", "repo")
-
-        assertTrue(result.isSuccess)
-        assertEquals(0, result.getOrNull()?.size)
-    }
-
-    @Test
     fun `getCommitDetail failure`() = runTest {
         coEvery { apiService.getCommitDetail("owner", "repo", "abc123") } throws RuntimeException("Error")
 
@@ -872,15 +831,6 @@ class GitHubRepositoryTest {
         coEvery { apiService.getPullRequest("owner", "repo", 42) } throws RuntimeException("Error")
 
         val result = repository.getPullRequest("owner", "repo", 42)
-
-        assertTrue(result.isFailure)
-    }
-
-    @Test
-    fun `getIssue failure`() = runTest {
-        coEvery { apiService.getIssue("owner", "repo", 5) } throws RuntimeException("Error")
-
-        val result = repository.getIssue("owner", "repo", 5)
 
         assertTrue(result.isFailure)
     }

@@ -7,10 +7,7 @@ import com.github.manager.data.model.SearchResult
 import com.github.manager.data.model.User
 import com.github.manager.data.model.UserSearchResult
 import com.github.manager.data.repository.GitHubRepository
-import io.mockk.any
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.mockk
+import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher

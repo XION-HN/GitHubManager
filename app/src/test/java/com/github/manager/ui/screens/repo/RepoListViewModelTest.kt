@@ -6,10 +6,7 @@ import com.github.manager.data.model.Owner
 import com.github.manager.data.model.Repository
 import com.github.manager.data.model.User
 import com.github.manager.data.repository.GitHubRepository
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.mockk
+import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
