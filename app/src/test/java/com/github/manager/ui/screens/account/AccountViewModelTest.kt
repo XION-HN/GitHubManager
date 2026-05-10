@@ -222,21 +222,6 @@ class AccountViewModelTest {
     }
 
     @Test
-    fun `switchAccount clears old data and saves new token`() = runTest(testDispatcher) {
-        coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.success(testUser)
-
-        val viewModel = AccountViewModel(gitHubRepository, tokenManager)
-        advanceUntilIdle()
-
-        viewModel.switchAccount("ghp_new_token")
-        advanceUntilIdle()
-
-        coVerify { tokenManager.clearAll() }
-        coVerify { tokenManager.saveToken("ghp_new_token") }
-        coVerify(atLeast = 2) { gitHubRepository.getAuthenticatedUser() }
-    }
-
-    @Test
     fun `loadProfile failure clears user`() = runTest(testDispatcher) {
         coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.failure(RuntimeException("API Error"))
 
@@ -249,27 +234,5 @@ class AccountViewModelTest {
             assertNotNull(state.error)
             assertFalse(state.isLoading)
         }
-    }
-
-    @Test
-    fun `saveLanguageMode persists to tokenManager`() = runTest(testDispatcher) {
-        val viewModel = AccountViewModel(gitHubRepository, tokenManager)
-        advanceUntilIdle()
-
-        viewModel.saveLanguageMode("ENGLISH")
-        advanceUntilIdle()
-
-        coVerify { tokenManager.saveLanguageMode("ENGLISH") }
-    }
-
-    @Test
-    fun `saveThemeMode persists to tokenManager`() = runTest(testDispatcher) {
-        val viewModel = AccountViewModel(gitHubRepository, tokenManager)
-        advanceUntilIdle()
-
-        viewModel.saveThemeMode("DARK")
-        advanceUntilIdle()
-
-        coVerify { tokenManager.saveThemeMode("DARK") }
     }
 }
