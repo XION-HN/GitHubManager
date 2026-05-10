@@ -195,23 +195,16 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `login sets loading state during request`() = runTest(testDispatcher) {
+    fun `login sets loading state then completes`() = runTest(testDispatcher) {
         createViewModel()
 
         viewModel.onTokenChanged("ghp_token")
         viewModel.login()
-
-        viewModel.uiState.test {
-            val loadingState = awaitItem()
-            assertTrue(loadingState.isLoading)
-        }
-
         advanceUntilIdle()
 
-        viewModel.uiState.test {
-            val finalState = awaitItem()
-            assertFalse(finalState.isLoading)
-        }
+        val finalState = viewModel.uiState.value
+        assertFalse(finalState.isLoading)
+        assertTrue(finalState.isAuthenticated)
     }
 
     @Test

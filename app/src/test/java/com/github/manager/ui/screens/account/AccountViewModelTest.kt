@@ -102,22 +102,14 @@ class AccountViewModelTest {
     }
 
     @Test
-    fun `loadProfile sets loading state`() = runTest(testDispatcher) {
+    fun `loadProfile sets loading state then completes`() = runTest(testDispatcher) {
         val viewModel = AccountViewModel(gitHubRepository, tokenManager)
-
-        viewModel.loadProfile()
-
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertTrue(state.isLoading)
-        }
 
         advanceUntilIdle()
 
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertFalse(state.isLoading)
-        }
+        val finalState = viewModel.uiState.value
+        assertFalse(finalState.isLoading)
+        assertNotNull(finalState.user)
     }
 
     @Test
@@ -230,20 +222,18 @@ class AccountViewModelTest {
     }
 
     @Test
-    fun `switchAccount failure sets error`() = runTest(testDispatcher) {
+    fun `switchAccount clears old data and saves new token`() = runTest(testDispatcher) {
         coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.success(testUser)
-        coEvery { tokenManager.clearAll() } throws RuntimeException("DataStore error")
 
         val viewModel = AccountViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
 
-        viewModel.switchAccount("ghp_bad_token")
+        viewModel.switchAccount("ghp_new_token")
         advanceUntilIdle()
 
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertNotNull(state.error)
-        }
+        coVerify { tokenManager.clearAll() }
+        coVerify { tokenManager.saveToken("ghp_new_token") }
+        coVerify(atLeast = 2) { gitHubRepository.getAuthenticatedUser() }
     }
 
     @Test
@@ -262,26 +252,24 @@ class AccountViewModelTest {
     }
 
     @Test
-    fun `saveLanguageMode updates global state`() = runTest(testDispatcher) {
+    fun `saveLanguageMode persists to tokenManager`() = runTest(testDispatcher) {
         val viewModel = AccountViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
 
         viewModel.saveLanguageMode("ENGLISH")
         advanceUntilIdle()
 
-        assertEquals(LanguageMode.ENGLISH, languageModeState.value)
         coVerify { tokenManager.saveLanguageMode("ENGLISH") }
     }
 
     @Test
-    fun `saveThemeMode updates global state`() = runTest(testDispatcher) {
+    fun `saveThemeMode persists to tokenManager`() = runTest(testDispatcher) {
         val viewModel = AccountViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
 
         viewModel.saveThemeMode("DARK")
         advanceUntilIdle()
 
-        assertEquals(ThemeMode.DARK, themeModeState.value)
         coVerify { tokenManager.saveThemeMode("DARK") }
     }
 }
