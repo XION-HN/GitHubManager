@@ -243,4 +243,47 @@ interface GitHubApiService {
         @Path("repo") repo: String,
         @Query("per_page") perPage: Int = 20
     ): List<Release>
+
+    @GET("repos/{owner}/{repo}/contents/{path}")
+    suspend fun getFileContent(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("path") path: String,
+        @Query("ref") ref: String? = null
+    ): RepoContent
+
+    @GET("notifications")
+    suspend fun getNotifications(
+        @Query("all") all: Boolean = true,
+        @Query("per_page") perPage: Int = 50,
+        @Query("page") page: Int = 1
+    ): List<Notification>
+
+    @PATCH("notifications/threads/{id}")
+    suspend fun markNotificationRead(
+        @Path("id") id: Long
+    ): Response<Unit>
+
+    @PUT("notifications")
+    suspend fun markAllNotificationsRead(): Response<Unit>
+
+    @GET("users/{username}")
+    suspend fun getUserProfile(
+        @Path("username") username: String
+    ): User
+
+    @GET("repos/{owner}/{repo}/actions/runs/{runId}/jobs")
+    suspend fun getWorkflowRunJobs(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("runId") runId: Long
+    ): WorkflowJobsResponse
+
+    @GET("repos/{owner}/{repo}/actions/jobs/{jobId}/logs")
+    @JvmSuppressWildcards
+    suspend fun getJobLogs(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("jobId") jobId: Long
+    ): retrofit2.ResponseBody
 }

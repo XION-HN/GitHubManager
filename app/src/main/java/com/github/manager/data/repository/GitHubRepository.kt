@@ -41,6 +41,10 @@ class GitHubRepository @Inject constructor(
         repos
     }
 
+    suspend fun getUserRepos(username: String, page: Int = 1): Result<List<Repository>> = safeApiCall {
+        apiService.getUserRepos(username, page = page)
+    }
+
     suspend fun getUserReposFromCache(): List<Repository> {
         return repoDao.getMyRepos().map { it.toDomain() }
     }
@@ -231,6 +235,44 @@ class GitHubRepository @Inject constructor(
 
     suspend fun getReleases(owner: String, repo: String): Result<List<Release>> = safeApiCall {
         apiService.getReleases(owner, repo) ?: emptyList()
+    }
+
+    suspend fun getFileContent(owner: String, repo: String, path: String, ref: String? = null): Result<RepoContent> = safeApiCall {
+        apiService.getFileContent(owner, repo, path, ref)
+    }
+
+    suspend fun getNotifications(page: Int = 1): Result<List<Notification>> = safeApiCall {
+        apiService.getNotifications(page = page) ?: emptyList()
+    }
+
+    suspend fun markNotificationRead(id: Long): Result<Boolean> {
+        return try {
+            val response = apiService.markNotificationRead(id)
+            Result.success(response.isSuccessful)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun markAllNotificationsRead(): Result<Boolean> {
+        return try {
+            val response = apiService.markAllNotificationsRead()
+            Result.success(response.isSuccessful)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getUserProfile(username: String): Result<User> = safeApiCall {
+        apiService.getUserProfile(username)
+    }
+
+    suspend fun getWorkflowRunJobs(owner: String, repo: String, runId: Long): Result<List<WorkflowJob>> = safeApiCall {
+        apiService.getWorkflowRunJobs(owner, repo, runId).jobs ?: emptyList()
+    }
+
+    suspend fun getJobLogs(owner: String, repo: String, jobId: Long): Result<String> = safeApiCall {
+        apiService.getJobLogs(owner, repo, jobId).string()
     }
 
     suspend fun clearAllCache() {

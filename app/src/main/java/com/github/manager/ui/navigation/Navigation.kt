@@ -18,6 +18,8 @@ import androidx.navigation.navArgument
 import com.github.manager.ui.screens.account.AccountScreen
 import com.github.manager.ui.screens.auth.AuthScreen
 import com.github.manager.ui.screens.auth.AuthViewModel
+import com.github.manager.ui.screens.notifications.NotificationsScreen
+import com.github.manager.ui.screens.profile.UserProfileScreen
 import com.github.manager.ui.screens.repo.RepoDetailScreen
 import com.github.manager.ui.screens.repo.RepoListScreen
 import com.github.manager.ui.screens.search.SearchScreen
@@ -28,8 +30,11 @@ object Routes {
     const val ACCOUNT = "account"
     const val REPO_DETAIL = "repoDetail/{owner}/{repo}"
     const val SEARCH = "search"
+    const val NOTIFICATIONS = "notifications"
+    const val USER_PROFILE = "userProfile/{username}"
 
     fun repoDetail(owner: String, repo: String) = "repoDetail/$owner/$repo"
+    fun userProfile(username: String) = "userProfile/$username"
 }
 
 private const val ANIM_DURATION = 350
@@ -95,6 +100,9 @@ fun GitHubNavHost() {
                 onSearchClick = {
                     navController.navigate(Routes.SEARCH)
                 },
+                onNotificationsClick = {
+                    navController.navigate(Routes.NOTIFICATIONS)
+                },
                 onLogout = {
                     authViewModel.logout()
                 }
@@ -115,7 +123,35 @@ fun GitHubNavHost() {
                 onRepoClick = { owner, repo ->
                     navController.navigate(Routes.repoDetail(owner, repo))
                 },
+                onUserClick = { username ->
+                    navController.navigate(Routes.userProfile(username))
+                },
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.NOTIFICATIONS) {
+            NotificationsScreen(
+                onBack = { navController.popBackStack() },
+                onRepoClick = { owner, repo ->
+                    navController.navigate(Routes.repoDetail(owner, repo))
+                }
+            )
+        }
+
+        composable(
+            route = Routes.USER_PROFILE,
+            arguments = listOf(
+                navArgument("username") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val username = backStackEntry.arguments?.getString("username") ?: ""
+            UserProfileScreen(
+                username = username,
+                onBack = { navController.popBackStack() },
+                onRepoClick = { owner, repo ->
+                    navController.navigate(Routes.repoDetail(owner, repo))
+                }
             )
         }
 

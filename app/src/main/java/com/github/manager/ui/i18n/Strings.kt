@@ -147,6 +147,32 @@ object I18nStrings {
 
     val pullToRefresh = BilingualText("下拉刷新", "Pull to Refresh")
     val loadMore = BilingualText("加载更多", "Load More")
+
+    val notifications = BilingualText("通知", "Notifications")
+    val markAllRead = BilingualText("全部标记已读", "Mark All Read")
+    val markRead = BilingualText("标记已读", "Mark Read")
+    val noNotifications = BilingualText("暂无通知", "No Notifications")
+    val unread = BilingualText("未读", "Unread")
+    val notificationType = BilingualText("类型", "Type")
+
+    val fileViewer = BilingualText("文件查看", "File Viewer")
+    val viewFile = BilingualText("查看文件", "View File")
+    val openInBrowser = BilingualText("在浏览器中打开", "Open in Browser")
+    val fileTooLarge = BilingualText("文件过大，无法在应用内查看", "File too large to view in app")
+    val binaryFile = BilingualText("二进制文件", "Binary File")
+
+    val userProfile = BilingualText("用户主页", "User Profile")
+    val viewOnGithub = BilingualText("在 GitHub 上查看", "View on GitHub")
+    val userRepos = BilingualText("用户仓库", "User Repos")
+
+    val workflowLogs = BilingualText("工作流日志", "Workflow Logs")
+    val viewLogs = BilingualText("查看日志", "View Logs")
+    val jobSteps = BilingualText("任务步骤", "Job Steps")
+    val noLogs = BilingualText("暂无日志", "No Logs Available")
+
+    val offlineCache = BilingualText("离线缓存结果", "Offline results from cache")
+    val cacheManagement = BilingualText("缓存管理", "Cache Management")
+    val clearCache = BilingualText("清除缓存", "Clear Cache")
 }
 
 val languageModeState = mutableStateOf(LanguageMode.BILINGUAL)

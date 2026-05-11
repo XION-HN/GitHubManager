@@ -885,4 +885,99 @@ class RepoDetailViewModelTest {
 
         coVerify { gitHubRepository.reRunWorkflow("owner", "test-repo", 1L) }
     }
+
+    @Test
+    fun `loadFileContent success sets viewingFile`() = runTest(testDispatcher) {
+        val fileContent = RepoContent(name = "Main.kt", type = "file", content = "ZnVuYyBtYWluKCk=")
+        coEvery { gitHubRepository.getFileContent(any(), any(), any(), any()) } returns Result.success(fileContent)
+
+        val viewModel = RepoDetailViewModel(gitHubRepository)
+        viewModel.init("owner", "test-repo")
+        advanceUntilIdle()
+
+        viewModel.loadFileContent("src/Main.kt")
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.viewingFile)
+        assertEquals("Main.kt", viewModel.uiState.value.fileContent?.name)
+    }
+
+    @Test
+    fun `loadFileContent failure does not set viewingFile`() = runTest(testDispatcher) {
+        coEvery { gitHubRepository.getFileContent(any(), any(), any(), any()) } returns Result.failure(RuntimeException("Not Found"))
+
+        val viewModel = RepoDetailViewModel(gitHubRepository)
+        viewModel.init("owner", "test-repo")
+        advanceUntilIdle()
+
+        viewModel.loadFileContent("src/Main.kt")
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.viewingFile)
+    }
+
+    @Test
+    fun `closeFileViewer clears state`() = runTest(testDispatcher) {
+        val fileContent = RepoContent(name = "Main.kt", type = "file", content = "ZnVuYyBtYWluKCk=")
+        coEvery { gitHubRepository.getFileContent(any(), any(), any(), any()) } returns Result.success(fileContent)
+
+        val viewModel = RepoDetailViewModel(gitHubRepository)
+        viewModel.init("owner", "test-repo")
+        advanceUntilIdle()
+
+        viewModel.loadFileContent("src/Main.kt")
+        advanceUntilIdle()
+
+        viewModel.closeFileViewer()
+
+        assertFalse(viewModel.uiState.value.viewingFile)
+        assertNull(viewModel.uiState.value.fileContent)
+    }
+
+    @Test
+    fun `loadWorkflowRunJobs success`() = runTest(testDispatcher) {
+        val jobs = listOf(WorkflowJob(id = 1, name = "build", status = "completed", conclusion = "success"))
+        coEvery { gitHubRepository.getWorkflowRunJobs(any(), any(), any()) } returns Result.success(jobs)
+
+        val viewModel = RepoDetailViewModel(gitHubRepository)
+        viewModel.init("owner", "test-repo")
+        advanceUntilIdle()
+
+        viewModel.loadWorkflowRunJobs(1L)
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.uiState.value.workflowJobs.size)
+    }
+
+    @Test
+    fun `loadJobLogs success`() = runTest(testDispatcher) {
+        coEvery { gitHubRepository.getJobLogs(any(), any(), any()) } returns Result.success("Build started...\nBuild succeeded")
+
+        val viewModel = RepoDetailViewModel(gitHubRepository)
+        viewModel.init("owner", "test-repo")
+        advanceUntilIdle()
+
+        viewModel.loadJobLogs(1L)
+        advanceUntilIdle()
+
+        assertEquals(1L, viewModel.uiState.value.viewingJobLogs)
+        assertNotNull(viewModel.uiState.value.jobLogs)
+    }
+
+    @Test
+    fun `closeJobLogs clears state`() = runTest(testDispatcher) {
+        coEvery { gitHubRepository.getJobLogs(any(), any(), any()) } returns Result.success("logs")
+
+        val viewModel = RepoDetailViewModel(gitHubRepository)
+        viewModel.init("owner", "test-repo")
+        advanceUntilIdle()
+
+        viewModel.loadJobLogs(1L)
+        advanceUntilIdle()
+
+        viewModel.closeJobLogs()
+
+        assertNull(viewModel.uiState.value.viewingJobLogs)
+        assertNull(viewModel.uiState.value.jobLogs)
+    }
 }

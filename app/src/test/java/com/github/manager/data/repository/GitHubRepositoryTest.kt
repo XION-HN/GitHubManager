@@ -856,4 +856,140 @@ class GitHubRepositoryTest {
         assertTrue(result.isSuccess)
         coVerify(exactly = 0) { repoDao.insertAll(any()) }
     }
+
+    @Test
+    fun `getUserRepos by username success`() = runTest {
+        val repos = listOf(Repository(id = 1, name = "repo1", fullName = "other/repo1", owner = Owner(2, "other")))
+        coEvery { apiService.getUserRepos("other", page = 1) } returns repos
+
+        val result = repository.getUserRepos("other", page = 1)
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, result.getOrNull()?.size)
+    }
+
+    @Test
+    fun `getFileContent success`() = runTest {
+        val content = RepoContent(name = "Main.kt", type = "file", content = "ZnVuYyBtYWluKCk=")
+        coEvery { apiService.getFileContent("owner", "repo", "src/Main.kt", null) } returns content
+
+        val result = repository.getFileContent("owner", "repo", "src/Main.kt")
+
+        assertTrue(result.isSuccess)
+        assertEquals("Main.kt", result.getOrNull()?.name)
+    }
+
+    @Test
+    fun `getFileContent failure`() = runTest {
+        coEvery { apiService.getFileContent("owner", "repo", "src/Main.kt", null) } throws RuntimeException("Not Found")
+
+        val result = repository.getFileContent("owner", "repo", "src/Main.kt")
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `getNotifications success`() = runTest {
+        val notifications = listOf(
+            Notification(id = 1, unread = true, reason = "subscribe", subject = NotificationSubject(title = "Bug"), repository = NotificationRepo(id = 1, name = "repo", fullName = "owner/repo", owner = Owner(id = 1, login = "owner")))
+        )
+        coEvery { apiService.getNotifications(page = 1) } returns notifications
+
+        val result = repository.getNotifications(page = 1)
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, result.getOrNull()?.size)
+    }
+
+    @Test
+    fun `getNotifications failure`() = runTest {
+        coEvery { apiService.getNotifications(page = 1) } throws RuntimeException("Error")
+
+        val result = repository.getNotifications(page = 1)
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `markNotificationRead success`() = runTest {
+        val response: Response<Unit> = Response.success(Unit)
+        coEvery { apiService.markNotificationRead(1L) } returns response
+
+        val result = repository.markNotificationRead(1L)
+
+        assertTrue(result.isSuccess)
+        assertTrue(result.getOrNull()!!)
+    }
+
+    @Test
+    fun `markNotificationRead failure`() = runTest {
+        coEvery { apiService.markNotificationRead(1L) } throws RuntimeException("Error")
+
+        val result = repository.markNotificationRead(1L)
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `markAllNotificationsRead success`() = runTest {
+        val response: Response<Unit> = Response.success(Unit)
+        coEvery { apiService.markAllNotificationsRead() } returns response
+
+        val result = repository.markAllNotificationsRead()
+
+        assertTrue(result.isSuccess)
+        assertTrue(result.getOrNull()!!)
+    }
+
+    @Test
+    fun `getUserProfile success`() = runTest {
+        val user = User(id = 1, login = "octocat", name = "The Octocat")
+        coEvery { apiService.getUserProfile("octocat") } returns user
+
+        val result = repository.getUserProfile("octocat")
+
+        assertTrue(result.isSuccess)
+        assertEquals("octocat", result.getOrNull()?.login)
+    }
+
+    @Test
+    fun `getUserProfile failure`() = runTest {
+        coEvery { apiService.getUserProfile("octocat") } throws RuntimeException("Not Found")
+
+        val result = repository.getUserProfile("octocat")
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `getWorkflowRunJobs success`() = runTest {
+        val jobs = listOf(WorkflowJob(id = 1, name = "build", status = "completed", conclusion = "success"))
+        val response = WorkflowJobsResponse(totalCount = 1, jobs = jobs)
+        coEvery { apiService.getWorkflowRunJobs("owner", "repo", 1L) } returns response
+
+        val result = repository.getWorkflowRunJobs("owner", "repo", 1L)
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, result.getOrNull()?.size)
+    }
+
+    @Test
+    fun `getWorkflowRunJobs null jobs returns empty`() = runTest {
+        val response = WorkflowJobsResponse(totalCount = 0, jobs = null)
+        coEvery { apiService.getWorkflowRunJobs("owner", "repo", 1L) } returns response
+
+        val result = repository.getWorkflowRunJobs("owner", "repo", 1L)
+
+        assertTrue(result.isSuccess)
+        assertEquals(0, result.getOrNull()?.size)
+    }
+
+    @Test
+    fun `getWorkflowRunJobs failure`() = runTest {
+        coEvery { apiService.getWorkflowRunJobs("owner", "repo", 1L) } throws RuntimeException("Error")
+
+        val result = repository.getWorkflowRunJobs("owner", "repo", 1L)
+
+        assertTrue(result.isFailure)
+    }
 }

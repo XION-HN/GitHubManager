@@ -260,3 +260,49 @@ data class ReleaseAsset(
     @Json(name = "browser_download_url") val downloadUrl: String = "",
     @Json(name = "download_count") val downloadCount: Int = 0
 )
+
+data class Notification(
+    val id: Long = 0,
+    val unread: Boolean = false,
+    val reason: String = "",
+    @Json(name = "updated_at") val updatedAt: String = "",
+    val subject: NotificationSubject = NotificationSubject(),
+    val repository: NotificationRepo = NotificationRepo()
+)
+
+data class NotificationSubject(
+    val title: String = "",
+    val url: String = "",
+    val type: String = ""
+)
+
+data class NotificationRepo(
+    val id: Long = 0,
+    val name: String = "",
+    @Json(name = "full_name") val fullName: String = "",
+    val owner: Owner = Owner(id = 0, login = "")
+)
+
+data class WorkflowJobsResponse(
+    @Json(name = "total_count") val totalCount: Int = 0,
+    val jobs: List<WorkflowJob>? = emptyList()
+)
+
+data class WorkflowJob(
+    val id: Long = 0,
+    val name: String = "",
+    val status: String = "",
+    val conclusion: String? = null,
+    @Json(name = "started_at") val startedAt: String = "",
+    @Json(name = "completed_at") val completedAt: String? = null,
+    val steps: List<WorkflowStep>? = emptyList()
+)
+
+data class WorkflowStep(
+    val name: String = "",
+    val status: String = "",
+    val conclusion: String? = null,
+    val number: Int = 0,
+    @Json(name = "started_at") val startedAt: String = "",
+    @Json(name = "completed_at") val completedAt: String? = null
+)

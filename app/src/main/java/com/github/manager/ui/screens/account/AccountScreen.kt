@@ -1,7 +1,10 @@
 package com.github.manager.ui.screens.account
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -13,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,6 +39,7 @@ fun AccountScreen(
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var newToken by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -131,18 +136,20 @@ fun AccountScreen(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        if (user.htmlUrl.isNotBlank()) {
-                            ListItem(
-                                headlineContent = { BilingualLabelSmall(I18nStrings.githubProfile) },
-                                leadingContent = {
-                                    Icon(Icons.Default.OpenInBrowser, contentDescription = null)
-                                },
-                                trailingContent = {
-                                    Text(user.htmlUrl, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(160.dp))
-                                },
-                                modifier = Modifier.clip(MaterialTheme.shapes.medium)
-                            )
-                        }
+            if (user.htmlUrl.isNotBlank()) {
+                ListItem(
+                    headlineContent = { BilingualLabelSmall(I18nStrings.githubProfile) },
+                    leadingContent = {
+                        Icon(Icons.Default.OpenInBrowser, contentDescription = null)
+                    },
+                    trailingContent = {
+                        Text(user.htmlUrl, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(160.dp))
+                    },
+                    modifier = Modifier.clip(MaterialTheme.shapes.medium).clickable {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(user.htmlUrl)))
+                    }
+                )
+            }
 
                         ListItem(
                             headlineContent = { BilingualLabelSmall(I18nStrings.memberSince) },

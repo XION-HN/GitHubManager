@@ -242,23 +242,25 @@ fun RepoDetailScreen(
                         currentBranch = uiState.currentBranch ?: uiState.repo?.defaultBranch ?: "main",
                         onSwitchBranch = { viewModel.switchBranch(it) }
                     )
-                    4 -> FileBrowserTab(
-                        files = uiState.files,
-                        currentPath = uiState.currentPath,
-                        canNavigateUp = uiState.pathStack.isNotEmpty(),
-                        onNavigateUp = { viewModel.navigateUp() },
-                        onFileClick = { file ->
-                            if (file.type == "dir") {
-                                viewModel.loadFiles(file.path)
-                            } else {
-                                file.htmlUrl.takeIf { it.isNotBlank() }?.let {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
-                                }
+                4 -> FileBrowserTab(
+                    files = uiState.files,
+                    currentPath = uiState.currentPath,
+                    canNavigateUp = uiState.pathStack.isNotEmpty(),
+                    onNavigateUp = { viewModel.navigateUp() },
+                    onFileClick = { file ->
+                        if (file.type == "dir") {
+                            viewModel.loadFiles(file.path)
+                        } else if (file.downloadUrl != null || file.size <= 1_000_000) {
+                            viewModel.loadFileContent(file.path)
+                        } else {
+                            file.htmlUrl.takeIf { it.isNotBlank() }?.let {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
                             }
-                        },
-                        readmeContent = uiState.readmeContent,
-                        onLoadReadme = { viewModel.loadReadme() }
-                    )
+                        }
+                    },
+                    readmeContent = uiState.readmeContent,
+                    onLoadReadme = { viewModel.loadReadme() }
+                )
                     5 -> ActionsTab(
                         workflows = uiState.workflows,
                         runs = uiState.workflowRuns,
@@ -329,6 +331,25 @@ fun RepoDetailScreen(
             comments = uiState.issueComments,
             onDismiss = { showCommentsDialog = -1 },
             onAddComment = { showCommentDialog = showCommentsDialog; showCommentsDialog = -1 }
+        )
+    }
+
+    if (uiState.viewingFile) {
+        FileContentDialog(
+            fileContent = uiState.fileContent,
+            isLoading = uiState.isLoadingFile,
+            onDismiss = { viewModel.closeFileViewer() },
+            onOpenInBrowser = { url ->
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            }
+        )
+    }
+
+    uiState.viewingJobLogs?.let { jobId ->
+        JobLogsDialog(
+            logs = uiState.jobLogs,
+            isLoading = uiState.isLoadingLogs,
+            onDismiss = { viewModel.closeJobLogs() }
         )
     }
 }

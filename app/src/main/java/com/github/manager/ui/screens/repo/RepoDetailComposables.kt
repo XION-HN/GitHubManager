@@ -589,3 +589,115 @@ fun CreateIssueDialog(onDismiss: () -> Unit, onCreate: (title: String, body: Str
         TextButton(onClick = { onCreate(title, body.ifBlank { null }) }, enabled = title.isNotBlank()) { Text(getText(I18nStrings.create)) }
     }, dismissButton = { TextButton(onClick = onDismiss) { Text(getText(I18nStrings.cancel)) } })
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FileContentDialog(
+    fileContent: RepoContent?,
+    isLoading: Boolean,
+    onDismiss: () -> Unit,
+    onOpenInBrowser: (String) -> Unit
+) {
+    val isBinary = fileContent?.encoding == "base64" && fileContent.size > 500_000
+    val decodedContent = remember(fileContent?.content) {
+        fileContent?.content?.let { raw ->
+            try {
+                android.util.Base64.decode(raw.replace("\n", ""), android.util.Base64.DEFAULT).decodeToString()
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.InsertDriveFile, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(fileContent?.name ?: "", style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        },
+        text = {
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (isBinary) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(getText(I18nStrings.binaryFile), style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(formatFileSize(fileContent?.size ?: 0), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else if (decodedContent != null) {
+                LazyColumn(modifier = Modifier.heightIn(max = 500.dp)) {
+                    item {
+                        SelectionArea {
+                            Text(
+                                decodedContent,
+                                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                                softWrap = true
+                            )
+                        }
+                    }
+                }
+            } else if (fileContent?.downloadUrl != null) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text(getText(I18nStrings.fileTooLarge), style = MaterialTheme.typography.bodyMedium)
+                }
+            } else {
+                Text(getText(I18nStrings.noData), style = MaterialTheme.typography.bodyMedium)
+            }
+        },
+        confirmButton = {
+            Row {
+                fileContent?.htmlUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                    TextButton(onClick = { onOpenInBrowser(url) }) {
+                        Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(getText(I18nStrings.openInBrowser))
+                    }
+                }
+                TextButton(onClick = onDismiss) { Text("OK") }
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun JobLogsDialog(
+    logs: String?,
+    isLoading: Boolean,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { BilingualLabel(I18nStrings.workflowLogs) },
+        text = {
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (logs != null) {
+                LazyColumn(modifier = Modifier.heightIn(max = 500.dp)) {
+                    item {
+                        SelectionArea {
+                            Text(
+                                logs,
+                                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
+                            )
+                        }
+                    }
+                }
+            } else {
+                Text(getText(I18nStrings.noLogs), style = MaterialTheme.typography.bodyMedium)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("OK") }
+        }
+    )
+}

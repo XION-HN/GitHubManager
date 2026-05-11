@@ -25,6 +25,13 @@ data class RepoDetailUiState(
     val currentPath: String = "",
     val pathStack: List<String> = emptyList(),
     val readmeContent: String? = null,
+    val fileContent: RepoContent? = null,
+    val viewingFile: Boolean = false,
+    val isLoadingFile: Boolean = false,
+    val workflowJobs: List<WorkflowJob> = emptyList(),
+    val viewingJobLogs: Long? = null,
+    val jobLogs: String? = null,
+    val isLoadingLogs: Boolean = false,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
@@ -512,5 +519,51 @@ val hasActive = response.workflowRuns?.any { it.status == "in_progress" || it.st
             gitHubRepository.createIssue(owner, repoName, title, body)
             loadIssues()
         }
+    }
+
+    fun loadFileContent(path: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingFile = true, viewingFile = true)
+            gitHubRepository.getFileContent(owner, repoName, path, ref = _uiState.value.currentBranch)
+                .onSuccess { content ->
+                    _uiState.value = _uiState.value.copy(fileContent = content, isLoadingFile = false)
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(error = e.message, isLoadingFile = false, viewingFile = false)
+                }
+        }
+    }
+
+    fun closeFileViewer() {
+        _uiState.value = _uiState.value.copy(viewingFile = false, fileContent = null)
+    }
+
+    fun loadWorkflowRunJobs(runId: Long) {
+        viewModelScope.launch {
+            gitHubRepository.getWorkflowRunJobs(owner, repoName, runId)
+                .onSuccess { jobs ->
+                    _uiState.value = _uiState.value.copy(workflowJobs = jobs)
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(error = e.message)
+                }
+        }
+    }
+
+    fun loadJobLogs(jobId: Long) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingLogs = true, viewingJobLogs = jobId, jobLogs = null)
+            gitHubRepository.getJobLogs(owner, repoName, jobId)
+                .onSuccess { logs ->
+                    _uiState.value = _uiState.value.copy(jobLogs = logs, isLoadingLogs = false)
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(jobLogs = null, isLoadingLogs = false, error = e.message)
+                }
+        }
+    }
+
+    fun closeJobLogs() {
+        _uiState.value = _uiState.value.copy(viewingJobLogs = null, jobLogs = null)
     }
 }

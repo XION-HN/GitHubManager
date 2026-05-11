@@ -28,6 +28,7 @@ fun RepoListScreen(
     onRepoClick: (owner: String, repo: String) -> Unit,
     onAccountClick: () -> Unit,
     onSearchClick: () -> Unit,
+    onNotificationsClick: () -> Unit = {},
     onLogout: () -> Unit,
     viewModel: RepoListViewModel = hiltViewModel()
 ) {
@@ -50,6 +51,9 @@ fun RepoListScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNotificationsClick) {
+                        Icon(Icons.Default.Notifications, contentDescription = getText(I18nStrings.notifications))
+                    }
                     IconButton(onClick = onSearchClick) {
                         Icon(Icons.Default.Search, contentDescription = getText(I18nStrings.search))
                     }
