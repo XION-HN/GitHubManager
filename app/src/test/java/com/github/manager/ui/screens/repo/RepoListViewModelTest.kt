@@ -45,6 +45,7 @@ class RepoListViewModelTest {
         coEvery { gitHubRepository.getStarredRepos(any()) } returns Result.success(testRepos)
         coEvery { gitHubRepository.getUserReposFromCache() } returns emptyList()
         coEvery { gitHubRepository.getStarredReposFromCache() } returns emptyList()
+        coEvery { gitHubRepository.getAuthenticatedUserFromCache() } returns null
     }
 
     @After
@@ -354,7 +355,7 @@ class RepoListViewModelTest {
     }
 
     @Test
-    fun `refresh failure sets error`() = runTest(testDispatcher) {
+    fun `refresh failure with no cache sets error`() = runTest(testDispatcher) {
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
 
@@ -369,8 +370,23 @@ class RepoListViewModelTest {
     }
 
     @Test
-    fun `loadProfile failure sets error`() = runTest(testDispatcher) {
+    fun `refresh failure with cached repos shows offline fallback`() = runTest(testDispatcher) {
+        val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
+        advanceUntilIdle()
+
+        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.failure(RuntimeException("Refresh error"))
+        coEvery { gitHubRepository.getUserReposFromCache() } returns testRepos
+        viewModel.refresh()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isOfflineFallback)
+        assertEquals(5, viewModel.uiState.value.repos.size)
+    }
+
+    @Test
+    fun `loadProfile failure with no cache leaves user null`() = runTest(testDispatcher) {
         coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.failure(RuntimeException("Profile error"))
+        coEvery { gitHubRepository.getAuthenticatedUserFromCache() } returns null
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -378,6 +394,20 @@ class RepoListViewModelTest {
         viewModel.uiState.test {
             val state = awaitItem()
             assertNull(state.user)
+        }
+    }
+
+    @Test
+    fun `loadProfile failure falls back to cached user`() = runTest(testDispatcher) {
+        coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.failure(RuntimeException("Profile error"))
+        coEvery { gitHubRepository.getAuthenticatedUserFromCache() } returns testUser
+
+        val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertEquals("testuser", state.user?.login)
         }
     }
 

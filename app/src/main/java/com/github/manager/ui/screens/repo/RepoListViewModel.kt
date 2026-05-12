@@ -50,6 +50,12 @@ class RepoListViewModel @Inject constructor(
                 .onSuccess { user ->
                     _uiState.value = _uiState.value.copy(user = user)
                 }
+                .onFailure {
+                    val cached = gitHubRepository.getAuthenticatedUserFromCache()
+                    if (cached != null) {
+                        _uiState.value = _uiState.value.copy(user = cached)
+                    }
+                }
         }
     }
 
@@ -60,6 +66,14 @@ class RepoListViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         starredRepos = repos.map { it.fullName }.toSet()
                     )
+                }
+                .onFailure {
+                    val cached = gitHubRepository.getStarredReposFromCache()
+                    if (cached.isNotEmpty()) {
+                        _uiState.value = _uiState.value.copy(
+                            starredRepos = cached.map { it.fullName }.toSet()
+                        )
+                    }
                 }
         }
     }
@@ -118,9 +132,23 @@ class RepoListViewModel @Inject constructor(
                         hasMore = repos.size >= perPage
                     )
                 }
-                .onFailure { e ->
+        .onFailure { e ->
+                val cached = if (_uiState.value.isStarredTab) {
+                    gitHubRepository.getStarredReposFromCache()
+                } else {
+                    gitHubRepository.getUserReposFromCache()
+                }
+                if (cached.isNotEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        repos = cached,
+                        isRefreshing = false,
+                        hasMore = false,
+                        isOfflineFallback = true
+                    )
+                } else {
                     _uiState.value = _uiState.value.copy(error = e.message, isRefreshing = false)
                 }
+            }
             loadProfile()
             loadStarredSet()
         }
