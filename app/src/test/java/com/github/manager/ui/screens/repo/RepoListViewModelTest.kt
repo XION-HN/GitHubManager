@@ -41,7 +41,7 @@ class RepoListViewModelTest {
         Dispatchers.setMain(testDispatcher)
 
         coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.success(testUser)
-        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.success(testRepos)
+        coEvery { gitHubRepository.getUserRepos(page = any()) } returns Result.success(testRepos)
         coEvery { gitHubRepository.getStarredRepos(any()) } returns Result.success(testRepos)
         coEvery { gitHubRepository.getUserReposFromCache() } returns emptyList()
         coEvery { gitHubRepository.getStarredReposFromCache() } returns emptyList()
@@ -68,7 +68,7 @@ class RepoListViewModelTest {
 
     @Test
     fun `loadRepos sets hasMore to true when perPage items returned`() = runTest(testDispatcher) {
-        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.success(fullRepos)
+        coEvery { gitHubRepository.getUserRepos(page = any()) } returns Result.success(fullRepos)
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -81,7 +81,7 @@ class RepoListViewModelTest {
 
     @Test
     fun `loadRepos sets hasMore to false when fewer items returned`() = runTest(testDispatcher) {
-        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.success(testRepos)
+        coEvery { gitHubRepository.getUserRepos(page = any()) } returns Result.success(testRepos)
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -94,7 +94,7 @@ class RepoListViewModelTest {
 
     @Test
     fun `loadRepos failure sets error`() = runTest(testDispatcher) {
-        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.failure(RuntimeException("API error"))
+        coEvery { gitHubRepository.getUserRepos(page = any()) } returns Result.failure(RuntimeException("API error"))
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -115,12 +115,12 @@ class RepoListViewModelTest {
         advanceUntilIdle()
 
         coVerify(atLeast = 2) { gitHubRepository.getAuthenticatedUser() }
-        coVerify(atLeast = 2) { gitHubRepository.getUserRepos(any()) }
+        coVerify(atLeast = 2) { gitHubRepository.getUserRepos(page = any()) }
     }
 
     @Test
     fun `loadMore appends repos`() = runTest(testDispatcher) {
-        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.success(fullRepos)
+        coEvery { gitHubRepository.getUserRepos(page = any()) } returns Result.success(fullRepos)
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -136,7 +136,7 @@ class RepoListViewModelTest {
 
     @Test
     fun `loadMore does nothing when hasMore is false`() = runTest(testDispatcher) {
-        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.success(testRepos)
+        coEvery { gitHubRepository.getUserRepos(page = any()) } returns Result.success(testRepos)
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
@@ -359,7 +359,7 @@ class RepoListViewModelTest {
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
 
-        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.failure(RuntimeException("Refresh error"))
+        coEvery { gitHubRepository.getUserRepos(page = any()) } returns Result.failure(RuntimeException("Refresh error"))
         viewModel.refresh()
         advanceUntilIdle()
 
@@ -374,7 +374,7 @@ class RepoListViewModelTest {
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
         advanceUntilIdle()
 
-        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.failure(RuntimeException("Refresh error"))
+        coEvery { gitHubRepository.getUserRepos(page = any()) } returns Result.failure(RuntimeException("Refresh error"))
         coEvery { gitHubRepository.getUserReposFromCache() } returns testRepos
         viewModel.refresh()
         advanceUntilIdle()
@@ -444,7 +444,7 @@ class RepoListViewModelTest {
 
     @Test
     fun `loadRepos failure with cached repos shows offline fallback`() = runTest(testDispatcher) {
-        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.failure(RuntimeException("Network error"))
+        coEvery { gitHubRepository.getUserRepos(page = any()) } returns Result.failure(RuntimeException("Network error"))
         coEvery { gitHubRepository.getUserReposFromCache() } returns testRepos
 
         val viewModel = RepoListViewModel(gitHubRepository, tokenManager)

@@ -3,6 +3,14 @@ package com.github.manager.data.repository
 import com.github.manager.data.api.GitHubApiService
 import com.github.manager.data.local.db.RepoDao
 import com.github.manager.data.local.db.UserDao
+import com.github.manager.data.local.db.CommitDao
+import com.github.manager.data.local.db.IssueDao
+import com.github.manager.data.local.db.PullRequestDao
+import com.github.manager.data.local.db.ReleaseDao
+import com.github.manager.data.local.db.CommitEntity
+import com.github.manager.data.local.db.IssueEntity
+import com.github.manager.data.local.db.PullRequestEntity
+import com.github.manager.data.local.db.ReleaseEntity
 import com.github.manager.data.model.*
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
@@ -1041,8 +1049,8 @@ class GitHubRepositoryTest {
     @Test
     fun `getIssuesFromCache returns cached issues`() = runTest {
         val entities = listOf(
-            IssueEntity(repoFullName = "owner/repo", id = 1, number = 1,
-                title = "Bug", state = "open", isPullRequest = false)
+        IssueEntity(repoFullName = "owner/repo", id = 1, number = 1,
+            title = "Bug", body = null, state = "open", isPullRequest = false)
         )
         coEvery { issueDao.getIssues("owner/repo", "open") } returns entities
 
@@ -1056,8 +1064,8 @@ class GitHubRepositoryTest {
     @Test
     fun `getIssuesFromCache with all state queries all`() = runTest {
         val entities = listOf(
-            IssueEntity(repoFullName = "owner/repo", id = 1, number = 1,
-                title = "Bug", state = "closed", isPullRequest = false)
+        IssueEntity(repoFullName = "owner/repo", id = 1, number = 1,
+            title = "Bug", body = null, state = "closed", isPullRequest = false)
         )
         coEvery { issueDao.getIssuesAll("owner/repo") } returns entities
 
@@ -1069,8 +1077,8 @@ class GitHubRepositoryTest {
     @Test
     fun `getPullRequestsFromCache returns cached PRs`() = runTest {
         val entities = listOf(
-            PullRequestEntity(repoFullName = "owner/repo", id = 1, number = 1,
-                title = "PR 1", state = "open", headRef = "feature", baseRef = "main")
+        PullRequestEntity(repoFullName = "owner/repo", id = 1, number = 1,
+            title = "PR 1", body = null, state = "open", headRef = "feature", baseRef = "main")
         )
         coEvery { pullRequestDao.getPullRequests("owner/repo", "open") } returns entities
 
