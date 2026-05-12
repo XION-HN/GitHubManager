@@ -75,6 +75,10 @@ class RepoDetailViewModelTest {
         coEvery { gitHubRepository.getReleases(any(), any()) } returns Result.success(testReleases)
         coEvery { gitHubRepository.getRepoContent(any(), any(), any(), any()) } returns Result.success(emptyList())
         coEvery { gitHubRepository.getReadme(any(), any(), any()) } returns Result.success(RepoContent())
+        coEvery { gitHubRepository.getCommitsFromCache(any(), any()) } returns emptyList()
+        coEvery { gitHubRepository.getIssuesFromCache(any(), any(), any()) } returns emptyList()
+        coEvery { gitHubRepository.getPullRequestsFromCache(any(), any(), any()) } returns emptyList()
+        coEvery { gitHubRepository.getReleasesFromCache(any(), any()) } returns emptyList()
     }
 
     @After
@@ -979,5 +983,80 @@ class RepoDetailViewModelTest {
 
         assertNull(viewModel.uiState.value.viewingJobLogs)
         assertNull(viewModel.uiState.value.jobLogs)
+    }
+
+    @Test
+    fun `loadCommits failure with cached data shows offline fallback`() = runTest(testDispatcher) {
+        coEvery { gitHubRepository.getCommits(any(), any(), any(), any()) } returns Result.failure(RuntimeException("Network error"))
+        coEvery { gitHubRepository.getCommitsFromCache("owner", "test-repo") } returns testCommits
+
+        val viewModel = RepoDetailViewModel(gitHubRepository)
+        viewModel.init("owner", "test-repo")
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isOfflineFallback)
+        assertEquals(2, viewModel.uiState.value.commits.size)
+        assertFalse(viewModel.uiState.value.hasMoreCommits)
+    }
+
+    @Test
+    fun `loadCommits failure with empty cache shows error`() = runTest(testDispatcher) {
+        coEvery { gitHubRepository.getCommits(any(), any(), any(), any()) } returns Result.failure(RuntimeException("Network error"))
+        coEvery { gitHubRepository.getCommitsFromCache("owner", "test-repo") } returns emptyList()
+
+        val viewModel = RepoDetailViewModel(gitHubRepository)
+        viewModel.init("owner", "test-repo")
+        advanceUntilIdle()
+
+        assertNotNull(viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isOfflineFallback)
+    }
+
+    @Test
+    fun `loadIssues failure with cached data shows offline fallback`() = runTest(testDispatcher) {
+        coEvery { gitHubRepository.getIssues(any(), any(), any(), any()) } returns Result.failure(RuntimeException("Network error"))
+        coEvery { gitHubRepository.getIssuesFromCache("owner", "test-repo", "open") } returns listOf(Issue(id = 1, number = 1, title = "Cached Bug"))
+
+        val viewModel = RepoDetailViewModel(gitHubRepository)
+        viewModel.init("owner", "test-repo")
+        advanceUntilIdle()
+
+        viewModel.loadIssues()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isOfflineFallback)
+        assertEquals(1, viewModel.uiState.value.issues.size)
+    }
+
+    @Test
+    fun `loadPullRequests failure with cached data shows offline fallback`() = runTest(testDispatcher) {
+        coEvery { gitHubRepository.getPullRequests(any(), any(), any(), any()) } returns Result.failure(RuntimeException("Network error"))
+        coEvery { gitHubRepository.getPullRequestsFromCache("owner", "test-repo", "open") } returns testPRs
+
+        val viewModel = RepoDetailViewModel(gitHubRepository)
+        viewModel.init("owner", "test-repo")
+        advanceUntilIdle()
+
+        viewModel.loadPullRequests()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isOfflineFallback)
+        assertEquals(1, viewModel.uiState.value.pullRequests.size)
+    }
+
+    @Test
+    fun `loadReleases failure with cached data shows offline fallback`() = runTest(testDispatcher) {
+        coEvery { gitHubRepository.getReleases(any(), any()) } returns Result.failure(RuntimeException("Network error"))
+        coEvery { gitHubRepository.getReleasesFromCache("owner", "test-repo") } returns testReleases
+
+        val viewModel = RepoDetailViewModel(gitHubRepository)
+        viewModel.init("owner", "test-repo")
+        advanceUntilIdle()
+
+        viewModel.loadReleases()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isOfflineFallback)
+        assertEquals(1, viewModel.uiState.value.releases.size)
     }
 }

@@ -6,6 +6,7 @@ import com.github.manager.data.model.Repository
 import com.github.manager.data.model.SearchResult
 import com.github.manager.data.model.User
 import com.github.manager.data.model.UserSearchResult
+import com.github.manager.data.local.TokenManager
 import com.github.manager.data.repository.GitHubRepository
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +26,7 @@ import org.junit.Test
 class SearchViewModelTest {
 
     private val gitHubRepository: GitHubRepository = mockk()
+    private val tokenManager: TokenManager = mockk(relaxed = true)
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -59,7 +61,7 @@ class SearchViewModelTest {
 
     @Test
     fun `initial state has empty query and no results`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.uiState.test {
             val state = awaitItem()
@@ -74,7 +76,7 @@ class SearchViewModelTest {
 
     @Test
     fun `onQueryChanged with blank query clears results and shows history`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.onQueryChanged("")
 
@@ -89,7 +91,7 @@ class SearchViewModelTest {
 
     @Test
     fun `onQueryChanged triggers search after debounce`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.onQueryChanged("kotlin")
         advanceTimeBy(400)
@@ -100,7 +102,7 @@ class SearchViewModelTest {
 
     @Test
     fun `onQueryChanged hides history when typing`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.onQueryChanged("k")
 
@@ -112,7 +114,7 @@ class SearchViewModelTest {
 
     @Test
     fun `onQueryChanged cancels previous search job`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.onQueryChanged("kot")
         viewModel.onQueryChanged("kotlin")
@@ -124,7 +126,7 @@ class SearchViewModelTest {
 
     @Test
     fun `search repositories populates repos list`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.onQueryChanged("kotlin")
         advanceTimeBy(400)
@@ -143,7 +145,7 @@ class SearchViewModelTest {
         coEvery { gitHubRepository.searchReposInCache("kotlin") } returns
                 listOf(Repository(id = 1, name = "cached-repo", fullName = "user/cached-repo", owner = Owner(1, "user")))
 
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.onQueryChanged("kotlin")
         advanceTimeBy(400)
@@ -161,7 +163,7 @@ class SearchViewModelTest {
     fun `search failure with empty cache sets error`() = runTest(testDispatcher) {
         coEvery { gitHubRepository.searchRepositories(any(), any()) } returns Result.failure(RuntimeException("API error"))
 
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.onQueryChanged("kotlin")
         advanceTimeBy(400)
@@ -176,7 +178,7 @@ class SearchViewModelTest {
 
     @Test
     fun `toggleSearchType to user search clears repos`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.onQueryChanged("test")
         advanceTimeBy(400)
@@ -194,7 +196,7 @@ class SearchViewModelTest {
 
     @Test
     fun `toggleSearchType to repo search clears users`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.toggleSearchType(false)
         viewModel.onQueryChanged("test")
@@ -213,7 +215,7 @@ class SearchViewModelTest {
 
     @Test
     fun `user search populates users list`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.toggleSearchType(false)
         viewModel.onQueryChanged("test")
@@ -233,7 +235,7 @@ class SearchViewModelTest {
         coEvery { gitHubRepository.searchUsersInCache("test") } returns
                 listOf(User(id = 1, login = "cached-user"))
 
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
         viewModel.toggleSearchType(false)
 
         viewModel.onQueryChanged("test")
@@ -259,7 +261,7 @@ class SearchViewModelTest {
         coEvery { gitHubRepository.searchRepositories("kotlin", page = 1) } returns Result.success(page1Result)
         coEvery { gitHubRepository.searchRepositories("kotlin", page = 2) } returns Result.success(page2Result)
 
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.onQueryChanged("kotlin")
         advanceTimeBy(400)
@@ -276,7 +278,7 @@ class SearchViewModelTest {
 
     @Test
     fun `loadMore does nothing when loading`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.loadMore()
 
@@ -291,7 +293,7 @@ class SearchViewModelTest {
         ))
         coEvery { gitHubRepository.searchRepositories("rare", page = 1) } returns Result.success(smallResult)
 
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.onQueryChanged("rare")
         advanceTimeBy(400)
@@ -307,7 +309,7 @@ class SearchViewModelTest {
 
     @Test
     fun `hasMore is true when repos size less than totalCount`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.onQueryChanged("kotlin")
         advanceTimeBy(400)
@@ -322,7 +324,7 @@ class SearchViewModelTest {
 
     @Test
     fun `toggleSearchType does not search when query is blank`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.toggleSearchType(false)
 
@@ -331,7 +333,7 @@ class SearchViewModelTest {
 
     @Test
     fun `setSortBy updates sort field`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.setSortBy("forks")
 
@@ -343,7 +345,7 @@ class SearchViewModelTest {
 
     @Test
     fun `setLanguageFilter updates language filter`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.setLanguageFilter("Kotlin")
 
@@ -355,7 +357,7 @@ class SearchViewModelTest {
 
     @Test
     fun `setLanguageFilter to null clears filter`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.setLanguageFilter("Kotlin")
         viewModel.setLanguageFilter(null)
@@ -368,7 +370,7 @@ class SearchViewModelTest {
 
     @Test
     fun `addToHistory adds query to history`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.addToHistory("kotlin")
 
@@ -380,7 +382,7 @@ class SearchViewModelTest {
 
     @Test
     fun `addToHistory does not add blank query`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.addToHistory("")
 
@@ -392,7 +394,7 @@ class SearchViewModelTest {
 
     @Test
     fun `addToHistory moves duplicate to top`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.addToHistory("kotlin")
         viewModel.addToHistory("java")
@@ -407,7 +409,7 @@ class SearchViewModelTest {
 
     @Test
     fun `removeFromHistory removes specific entry`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.addToHistory("kotlin")
         viewModel.addToHistory("java")
@@ -422,7 +424,7 @@ class SearchViewModelTest {
 
     @Test
     fun `clearSearchHistory removes all entries`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.addToHistory("kotlin")
         viewModel.addToHistory("java")
@@ -436,7 +438,7 @@ class SearchViewModelTest {
 
     @Test
     fun `selectHistoryItem triggers search for that query`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.selectHistoryItem("kotlin")
         advanceTimeBy(400)
@@ -453,7 +455,7 @@ class SearchViewModelTest {
         coEvery { gitHubRepository.searchRepositories("kotlin", page = 1) } returns Result.success(page1Result)
         coEvery { gitHubRepository.searchRepositories("kotlin", page = 2) } returns Result.failure(RuntimeException("Network error"))
 
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
         viewModel.onQueryChanged("kotlin")
         advanceTimeBy(400)
         advanceUntilIdle()
@@ -472,7 +474,7 @@ class SearchViewModelTest {
         coEvery { gitHubRepository.searchUsers(any(), any()) } returns Result.failure(RuntimeException("Error"))
         coEvery { gitHubRepository.searchUsersInCache(any()) } returns emptyList()
 
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
         viewModel.toggleSearchType(false)
 
         viewModel.onQueryChanged("test")
@@ -488,7 +490,7 @@ class SearchViewModelTest {
 
     @Test
     fun `setSortBy triggers new search`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.onQueryChanged("kotlin")
         advanceTimeBy(400)
@@ -502,7 +504,7 @@ class SearchViewModelTest {
 
     @Test
     fun `setLanguageFilter triggers new search`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.onQueryChanged("kotlin")
         advanceTimeBy(400)
@@ -526,7 +528,7 @@ class SearchViewModelTest {
         coEvery { gitHubRepository.searchUsers("test", page = 1) } returns Result.success(page1Result)
         coEvery { gitHubRepository.searchUsers("test", page = 2) } returns Result.success(page2Result)
 
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
         viewModel.toggleSearchType(false)
 
         viewModel.onQueryChanged("test")
@@ -544,7 +546,7 @@ class SearchViewModelTest {
 
     @Test
     fun `initial state has totalCount zero`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.uiState.test {
             val state = awaitItem()
@@ -554,7 +556,7 @@ class SearchViewModelTest {
 
     @Test
     fun `onQueryChanged with same query after clear does not duplicate`() = runTest(testDispatcher) {
-        val viewModel = SearchViewModel(gitHubRepository)
+        val viewModel = SearchViewModel(gitHubRepository, tokenManager)
 
         viewModel.onQueryChanged("kotlin")
         advanceTimeBy(400)

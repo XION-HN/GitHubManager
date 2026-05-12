@@ -94,6 +94,19 @@ fun RepoDetailScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
+            if (uiState.isOfflineFallback) {
+                Surface(
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        getText(I18nStrings.offlineCache),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
+            }
             uiState.repo?.let { repoDetail ->
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(repoDetail.fullName, style = MaterialTheme.typography.titleLarge)

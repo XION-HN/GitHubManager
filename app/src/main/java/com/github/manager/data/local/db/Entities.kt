@@ -42,3 +42,90 @@ data class UserEntity(
     val createdAt: String = "",
     val cachedAt: Long = System.currentTimeMillis()
 )
+
+@Entity(
+    tableName = "cached_commits",
+    indices = [Index(value = ["repoFullName", "sha"], unique = true)]
+)
+data class CommitEntity(
+    @PrimaryKey(autoGenerate = true) val dbId: Long = 0,
+    val repoFullName: String,
+    val sha: String,
+    val authorName: String = "",
+    val authorEmail: String = "",
+    val authorDate: String = "",
+    val message: String = "",
+    val authorLogin: String? = null,
+    val authorAvatarUrl: String? = null,
+    val htmlUrl: String = "",
+    val cachedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(
+    tableName = "cached_issues",
+    indices = [Index(value = ["repoFullName", "number"], unique = true)]
+)
+data class IssueEntity(
+    @PrimaryKey(autoGenerate = true) val dbId: Long = 0,
+    val repoFullName: String,
+    val id: Long,
+    val number: Int,
+    val title: String,
+    val body: String?,
+    val state: String = "open",
+    val userLogin: String? = null,
+    val userAvatarUrl: String? = null,
+    val labels: String? = null,
+    val createdAt: String = "",
+    val updatedAt: String = "",
+    val closedAt: String? = null,
+    val htmlUrl: String = "",
+    val isPullRequest: Boolean = false,
+    val cachedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(
+    tableName = "cached_pull_requests",
+    indices = [Index(value = ["repoFullName", "number"], unique = true)]
+)
+data class PullRequestEntity(
+    @PrimaryKey(autoGenerate = true) val dbId: Long = 0,
+    val repoFullName: String,
+    val id: Long,
+    val number: Int,
+    val title: String,
+    val body: String?,
+    val state: String = "open",
+    val userLogin: String? = null,
+    val userAvatarUrl: String? = null,
+    val createdAt: String = "",
+    val updatedAt: String = "",
+    val closedAt: String? = null,
+    val mergedAt: String? = null,
+    val htmlUrl: String = "",
+    val headRef: String = "",
+    val headSha: String = "",
+    val baseRef: String = "",
+    val draft: Boolean = false,
+    val cachedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(
+    tableName = "cached_releases",
+    indices = [Index(value = ["repoFullName", "tagName"], unique = true)]
+)
+data class ReleaseEntity(
+    @PrimaryKey(autoGenerate = true) val dbId: Long = 0,
+    val repoFullName: String,
+    val id: Long,
+    val tagName: String,
+    val name: String? = null,
+    val body: String? = null,
+    val draft: Boolean = false,
+    val prerelease: Boolean = false,
+    val createdAt: String = "",
+    val publishedAt: String? = null,
+    val htmlUrl: String = "",
+    val authorLogin: String? = null,
+    val cachedAt: Long = System.currentTimeMillis()
+)

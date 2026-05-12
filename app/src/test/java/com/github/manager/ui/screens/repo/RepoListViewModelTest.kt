@@ -43,6 +43,8 @@ class RepoListViewModelTest {
         coEvery { gitHubRepository.getAuthenticatedUser() } returns Result.success(testUser)
         coEvery { gitHubRepository.getUserRepos(any()) } returns Result.success(testRepos)
         coEvery { gitHubRepository.getStarredRepos(any()) } returns Result.success(testRepos)
+        coEvery { gitHubRepository.getUserReposFromCache() } returns emptyList()
+        coEvery { gitHubRepository.getStarredReposFromCache() } returns emptyList()
     }
 
     @After
@@ -408,5 +410,33 @@ class RepoListViewModelTest {
             val state = awaitItem()
             assertTrue(state.starredRepos.contains("testuser/repo1"))
         }
+    }
+
+    @Test
+    fun `loadRepos failure with cached repos shows offline fallback`() = runTest(testDispatcher) {
+        coEvery { gitHubRepository.getUserRepos(any()) } returns Result.failure(RuntimeException("Network error"))
+        coEvery { gitHubRepository.getUserReposFromCache() } returns testRepos
+
+        val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isOfflineFallback)
+        assertEquals(5, viewModel.uiState.value.repos.size)
+        assertFalse(viewModel.uiState.value.hasMore)
+    }
+
+    @Test
+    fun `loadRepos failure with starred cache shows offline fallback`() = runTest(testDispatcher) {
+        coEvery { gitHubRepository.getStarredRepos(any()) } returns Result.failure(RuntimeException("Network error"))
+        coEvery { gitHubRepository.getStarredReposFromCache() } returns testRepos
+
+        val viewModel = RepoListViewModel(gitHubRepository, tokenManager)
+        advanceUntilIdle()
+
+        viewModel.toggleTab(true)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isOfflineFallback)
+        assertEquals(5, viewModel.uiState.value.repos.size)
     }
 }

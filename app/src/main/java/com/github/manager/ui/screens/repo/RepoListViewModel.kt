@@ -22,7 +22,8 @@ data class RepoListUiState(
     val hasMore: Boolean = true,
     val error: String? = null,
     val isStarredTab: Boolean = false,
-    val starredRepos: Set<String> = emptySet()
+    val starredRepos: Set<String> = emptySet(),
+    val isOfflineFallback: Boolean = false
 )
 
 @HiltViewModel
@@ -65,7 +66,7 @@ class RepoListViewModel @Inject constructor(
 
     fun loadRepos() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null, isOfflineFallback = false)
             currentPage = 1
             val result = if (_uiState.value.isStarredTab) {
                 gitHubRepository.getStarredRepos(page = currentPage)
@@ -81,7 +82,21 @@ class RepoListViewModel @Inject constructor(
                     )
                 }
                 .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                    val cached = if (_uiState.value.isStarredTab) {
+                        gitHubRepository.getStarredReposFromCache()
+                    } else {
+                        gitHubRepository.getUserReposFromCache()
+                    }
+                    if (cached.isNotEmpty()) {
+                        _uiState.value = _uiState.value.copy(
+                            repos = cached,
+                            isLoading = false,
+                            hasMore = false,
+                            isOfflineFallback = true
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                    }
                 }
         }
     }

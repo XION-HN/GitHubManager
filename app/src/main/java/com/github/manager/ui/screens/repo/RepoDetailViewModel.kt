@@ -48,7 +48,8 @@ data class RepoDetailUiState(
     val prStateFilter: String = "open",
     val issueComments: List<IssueComment> = emptyList(),
     val selectedIssueNumber: Int? = null,
-    val actionMessage: String? = null
+    val actionMessage: String? = null,
+    val isOfflineFallback: Boolean = false
 )
 
 @HiltViewModel
@@ -123,7 +124,7 @@ class RepoDetailViewModel @Inject constructor(
 
     fun loadCommits() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, isOfflineFallback = false)
             commitsPage = 1
             val branch = _uiState.value.currentBranch
             gitHubRepository.getCommits(owner, repoName, branch = branch, page = commitsPage)
@@ -134,8 +135,18 @@ class RepoDetailViewModel @Inject constructor(
                         hasMoreCommits = commits.size >= perPage
                     )
                 }
-                .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                .onFailure {
+                    val cached = gitHubRepository.getCommitsFromCache(owner, repoName)
+                    if (cached.isNotEmpty()) {
+                        _uiState.value = _uiState.value.copy(
+                            commits = cached,
+                            isLoading = false,
+                            hasMoreCommits = false,
+                            isOfflineFallback = true
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(error = it.message, isLoading = false)
+                    }
                 }
         }
     }
@@ -167,7 +178,7 @@ class RepoDetailViewModel @Inject constructor(
 
     fun loadIssues() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, isOfflineFallback = false)
             issuesPage = 1
             gitHubRepository.getIssues(owner, repoName, state = _uiState.value.issueStateFilter, page = issuesPage)
                 .onSuccess { issues ->
@@ -178,8 +189,18 @@ class RepoDetailViewModel @Inject constructor(
                         hasMoreIssues = issues.size >= perPage
                     )
                 }
-                .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                .onFailure {
+                    val cached = gitHubRepository.getIssuesFromCache(owner, repoName, _uiState.value.issueStateFilter)
+                    if (cached.isNotEmpty()) {
+                        _uiState.value = _uiState.value.copy(
+                            issues = cached,
+                            isLoading = false,
+                            hasMoreIssues = false,
+                            isOfflineFallback = true
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(error = it.message, isLoading = false)
+                    }
                 }
         }
     }
@@ -212,7 +233,7 @@ class RepoDetailViewModel @Inject constructor(
 
     fun loadPullRequests() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, isOfflineFallback = false)
             prsPage = 1
             gitHubRepository.getPullRequests(owner, repoName, state = _uiState.value.prStateFilter, page = prsPage)
                 .onSuccess { prs ->
@@ -222,8 +243,18 @@ class RepoDetailViewModel @Inject constructor(
                         hasMorePrs = prs.size >= perPage
                     )
                 }
-                .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                .onFailure {
+                    val cached = gitHubRepository.getPullRequestsFromCache(owner, repoName, _uiState.value.prStateFilter)
+                    if (cached.isNotEmpty()) {
+                        _uiState.value = _uiState.value.copy(
+                            pullRequests = cached,
+                            isLoading = false,
+                            hasMorePrs = false,
+                            isOfflineFallback = true
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(error = it.message, isLoading = false)
+                    }
                 }
         }
     }
@@ -444,7 +475,7 @@ val hasActive = response.workflowRuns?.any { it.status == "in_progress" || it.st
 
     fun loadReleases() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, isOfflineFallback = false)
             releasesPage = 1
             gitHubRepository.getReleases(owner, repoName)
                 .onSuccess { releases ->
@@ -454,8 +485,18 @@ val hasActive = response.workflowRuns?.any { it.status == "in_progress" || it.st
                         hasMoreReleases = releases.size >= 20
                     )
                 }
-                .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                .onFailure {
+                    val cached = gitHubRepository.getReleasesFromCache(owner, repoName)
+                    if (cached.isNotEmpty()) {
+                        _uiState.value = _uiState.value.copy(
+                            releases = cached,
+                            isLoading = false,
+                            hasMoreReleases = false,
+                            isOfflineFallback = true
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(error = it.message, isLoading = false)
+                    }
                 }
         }
     }

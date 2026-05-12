@@ -2,6 +2,7 @@ package com.github.manager.ui.screens.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.manager.data.local.TokenManager
 import com.github.manager.data.model.Repository
 import com.github.manager.data.model.User
 import com.github.manager.data.repository.GitHubRepository
@@ -33,7 +34,8 @@ data class SearchUiState(
 
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val gitHubRepository: GitHubRepository
+    private val gitHubRepository: GitHubRepository,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SearchUiState())
@@ -43,7 +45,29 @@ class SearchViewModel @Inject constructor(
 
     companion object {
         private const val MAX_HISTORY = 20
+        private const val SEARCH_HISTORY_KEY = "search_history"
         private val historyEntries = mutableListOf<String>()
+    }
+
+    init {
+        loadSearchHistory()
+    }
+
+    private fun loadSearchHistory() {
+        viewModelScope.launch {
+            val stored = tokenManager.loadCache(SEARCH_HISTORY_KEY)
+            if (stored != null && stored.isNotBlank()) {
+                historyEntries.clear()
+                historyEntries.addAll(stored.split("||").filter { it.isNotBlank() })
+                _uiState.value = _uiState.value.copy(searchHistory = historyEntries.toList())
+            }
+        }
+    }
+
+    private fun persistSearchHistory() {
+        viewModelScope.launch {
+            tokenManager.saveCache(SEARCH_HISTORY_KEY, historyEntries.joinToString("||"))
+        }
     }
 
     fun onQueryChanged(query: String) {
@@ -114,16 +138,19 @@ class SearchViewModel @Inject constructor(
             historyEntries.removeLast()
         }
         _uiState.value = _uiState.value.copy(searchHistory = historyEntries.toList())
+        persistSearchHistory()
     }
 
     fun removeFromHistory(query: String) {
         historyEntries.remove(query)
         _uiState.value = _uiState.value.copy(searchHistory = historyEntries.toList())
+        persistSearchHistory()
     }
 
     fun clearSearchHistory() {
         historyEntries.clear()
         _uiState.value = _uiState.value.copy(searchHistory = emptyList())
+        persistSearchHistory()
     }
 
     fun selectHistoryItem(query: String) {

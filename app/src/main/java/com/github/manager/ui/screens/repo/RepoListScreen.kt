@@ -66,9 +66,22 @@ fun RepoListScreen(
                 }
             )
         }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            TabRow(selectedTabIndex = if (uiState.isStarredTab) 1 else 0) {
+) { padding ->
+    Column(modifier = Modifier.padding(padding)) {
+        if (uiState.isOfflineFallback) {
+            Surface(
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    getText(I18nStrings.offlineCache),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
+        }
+        TabRow(selectedTabIndex = if (uiState.isStarredTab) 1 else 0) {
                 Tab(
                     selected = !uiState.isStarredTab,
                     onClick = { viewModel.toggleTab(false) },

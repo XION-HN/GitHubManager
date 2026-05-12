@@ -1,10 +1,7 @@
 package com.github.manager.data.repository
 
 import com.github.manager.data.api.GitHubApiService
-import com.github.manager.data.local.db.RepoDao
-import com.github.manager.data.local.db.RepoEntity
-import com.github.manager.data.local.db.UserDao
-import com.github.manager.data.local.db.UserEntity
+import com.github.manager.data.local.db.*
 import com.github.manager.data.model.*
 import retrofit2.Response
 import javax.inject.Inject
@@ -14,7 +11,11 @@ import javax.inject.Singleton
 class GitHubRepository @Inject constructor(
     private val apiService: GitHubApiService,
     private val repoDao: RepoDao,
-    private val userDao: UserDao
+    private val userDao: UserDao,
+    private val commitDao: CommitDao,
+    private val issueDao: IssueDao,
+    private val pullRequestDao: PullRequestDao,
+    private val releaseDao: ReleaseDao
 ) {
 
     suspend fun getAuthenticatedUser(): Result<User> = safeApiCall {
@@ -119,7 +120,17 @@ class GitHubRepository @Inject constructor(
     }
 
     suspend fun getCommits(owner: String, repo: String, branch: String? = null, page: Int = 1): Result<List<Commit>> = safeApiCall {
-        apiService.getCommits(owner, repo, sha = branch, page = page)
+        val commits = apiService.getCommits(owner, repo, sha = branch, page = page)
+        if (page == 1) {
+            val fullName = "$owner/$repo"
+            commitDao.deleteByRepo(fullName)
+            commitDao.insertAll(commits.map { it.toEntity(fullName) })
+        }
+        commits
+    }
+
+    suspend fun getCommitsFromCache(owner: String, repo: String): List<Commit> {
+        return commitDao.getCommits("$owner/$repo").map { it.toDomain() }
     }
 
     suspend fun getCommitDetail(owner: String, repo: String, sha: String): Result<Commit> = safeApiCall {
@@ -127,7 +138,25 @@ class GitHubRepository @Inject constructor(
     }
 
     suspend fun getIssues(owner: String, repo: String, state: String = "open", page: Int = 1): Result<List<Issue>> = safeApiCall {
-        apiService.getIssues(owner, repo, state, page = page)
+        val issues = apiService.getIssues(owner, repo, state, page = page)
+        if (page == 1) {
+            val fullName = "$owner/$repo"
+            issueDao.deleteByRepo(fullName)
+            issueDao.insertAll(issues.map { it.toEntity(fullName) })
+        }
+        issues
+    }
+
+    suspend fun getIssuesFromCache(owner: String, repo: String, state: String = "open"): List<Issue> {
+        return try {
+            if (state == "all") {
+                issueDao.getIssuesAll("$owner/$repo").map { it.toDomain() }
+            } else {
+                issueDao.getIssues("$owner/$repo", state).map { it.toDomain() }
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     suspend fun createIssue(owner: String, repo: String, title: String, body: String?): Result<Issue> = safeApiCall {
@@ -135,7 +164,25 @@ class GitHubRepository @Inject constructor(
     }
 
     suspend fun getPullRequests(owner: String, repo: String, state: String = "open", page: Int = 1): Result<List<PullRequest>> = safeApiCall {
-        apiService.getPullRequests(owner, repo, state, page = page)
+        val prs = apiService.getPullRequests(owner, repo, state, page = page)
+        if (page == 1) {
+            val fullName = "$owner/$repo"
+            pullRequestDao.deleteByRepo(fullName)
+            pullRequestDao.insertAll(prs.map { it.toEntity(fullName) })
+        }
+        prs
+    }
+
+    suspend fun getPullRequestsFromCache(owner: String, repo: String, state: String = "open"): List<PullRequest> {
+        return try {
+            if (state == "all") {
+                pullRequestDao.getPullRequestsAll("$owner/$repo").map { it.toDomain() }
+            } else {
+                pullRequestDao.getPullRequests("$owner/$repo", state).map { it.toDomain() }
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     suspend fun getPullRequest(owner: String, repo: String, number: Int): Result<PullRequest> = safeApiCall {
@@ -234,7 +281,15 @@ class GitHubRepository @Inject constructor(
     }
 
     suspend fun getReleases(owner: String, repo: String): Result<List<Release>> = safeApiCall {
-        apiService.getReleases(owner, repo) ?: emptyList()
+        val releases = apiService.getReleases(owner, repo) ?: emptyList()
+        val fullName = "$owner/$repo"
+        releaseDao.deleteByRepo(fullName)
+        releaseDao.insertAll(releases.map { it.toEntity(fullName) })
+        releases
+    }
+
+    suspend fun getReleasesFromCache(owner: String, repo: String): List<Release> {
+        return releaseDao.getReleases("$owner/$repo").map { it.toDomain() }
     }
 
     suspend fun getFileContent(owner: String, repo: String, path: String, ref: String? = null): Result<RepoContent> = safeApiCall {
@@ -278,6 +333,10 @@ class GitHubRepository @Inject constructor(
     suspend fun clearAllCache() {
         repoDao.deleteAll()
         userDao.deleteAll()
+        commitDao.deleteAll()
+        issueDao.deleteAll()
+        pullRequestDao.deleteAll()
+        releaseDao.deleteAll()
     }
 
     private suspend fun <T> safeApiCall(call: suspend () -> T): Result<T> {
@@ -291,74 +350,131 @@ class GitHubRepository @Inject constructor(
 
 private fun Repository.toEntity(isStarred: Boolean = false): RepoEntity {
     return RepoEntity(
-        id = id,
-        name = name,
-        fullName = fullName,
-        ownerLogin = owner.login,
-        ownerAvatarUrl = owner.avatarUrl,
-        description = description,
-    isPrivate = private,
-    fork = fork,
-    htmlUrl = htmlUrl,
-    language = language,
-    stargazersCount = stargazersCount,
-    forksCount = forksCount,
-    openIssuesCount = openIssuesCount,
-    defaultBranch = defaultBranch,
-    updatedAt = updatedAt,
-    topics = topics?.joinToString(","),
-    isStarred = isStarred
+        id = id, name = name, fullName = fullName,
+        ownerLogin = owner.login, ownerAvatarUrl = owner.avatarUrl,
+        description = description, isPrivate = private, fork = fork,
+        htmlUrl = htmlUrl, language = language, stargazersCount = stargazersCount,
+        forksCount = forksCount, openIssuesCount = openIssuesCount,
+        defaultBranch = defaultBranch, updatedAt = updatedAt,
+        topics = topics?.joinToString(","), isStarred = isStarred
     )
 }
 
 private fun RepoEntity.toDomain(): Repository {
     return Repository(
-        id = id,
-        name = name,
-        fullName = fullName,
+        id = id, name = name, fullName = fullName,
         owner = Owner(id = 0, login = ownerLogin, avatarUrl = ownerAvatarUrl),
-        description = description,
-    private = isPrivate,
-    fork = fork,
-        htmlUrl = htmlUrl,
-        language = language,
-        stargazersCount = stargazersCount,
-        forksCount = forksCount,
-        openIssuesCount = openIssuesCount,
-        defaultBranch = defaultBranch,
-        updatedAt = updatedAt,
+        description = description, private = isPrivate, fork = fork,
+        htmlUrl = htmlUrl, language = language, stargazersCount = stargazersCount,
+        forksCount = forksCount, openIssuesCount = openIssuesCount,
+        defaultBranch = defaultBranch, updatedAt = updatedAt,
         topics = topics?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
     )
 }
 
 private fun User.toEntity(): UserEntity {
     return UserEntity(
-        id = id,
-        login = login,
-        name = name,
-        avatarUrl = avatarUrl,
-        htmlUrl = htmlUrl,
-        bio = bio,
-        publicRepos = publicRepos,
-        publicGists = publicGists,
-        followers = followers,
-        following = following,
-        createdAt = createdAt
+        id = id, login = login, name = name,
+        avatarUrl = avatarUrl, htmlUrl = htmlUrl, bio = bio,
+        publicRepos = publicRepos, publicGists = publicGists,
+        followers = followers, following = following, createdAt = createdAt
     )
 }
 
 private fun UserEntity.toDomain(): User {
     return User(
-        id = id,
-        login = login,
-        name = name,
-        avatarUrl = avatarUrl,
+        id = id, login = login, name = name,
+        avatarUrl = avatarUrl, htmlUrl = htmlUrl, bio = bio,
+        publicRepos = publicRepos, publicGists = publicGists,
+        followers = followers, following = following, createdAt = createdAt
+    )
+}
+
+private fun Commit.toEntity(repoFullName: String): CommitEntity {
+    return CommitEntity(
+        repoFullName = repoFullName, sha = sha,
+        authorName = commit.author.name, authorEmail = commit.author.email,
+        authorDate = commit.author.date, message = commit.message,
+        authorLogin = author?.login, authorAvatarUrl = author?.avatarUrl,
+        htmlUrl = htmlUrl
+    )
+}
+
+private fun CommitEntity.toDomain(): Commit {
+    return Commit(
+        sha = sha, htmlUrl = htmlUrl,
+        commit = CommitDetail(
+            author = CommitAuthor(name = authorName, email = authorEmail, date = authorDate),
+            message = message
+        ),
+        author = authorLogin?.let {
+            User(id = 0, login = it, avatarUrl = authorAvatarUrl ?: "")
+        }
+    )
+}
+
+private fun Issue.toEntity(repoFullName: String): IssueEntity {
+    return IssueEntity(
+        repoFullName = repoFullName, id = id, number = number,
+        title = title, body = body, state = state,
+        userLogin = user?.login, userAvatarUrl = user?.avatarUrl,
+        labels = labels?.joinToString(",") { it.name },
+        createdAt = createdAt, updatedAt = updatedAt,
+        closedAt = closedAt, htmlUrl = htmlUrl,
+        isPullRequest = pullRequest != null
+    )
+}
+
+private fun IssueEntity.toDomain(): Issue {
+    return Issue(
+        id = id, number = number, title = title, body = body,
+        state = state, htmlUrl = htmlUrl,
+        user = userLogin?.let { User(id = 0, login = it, avatarUrl = userAvatarUrl ?: "") },
+        labels = labels?.split(",")?.filter { it.isNotBlank() }?.map { Label(id = 0, name = it.trim(), color = "") },
+        createdAt = createdAt, updatedAt = updatedAt, closedAt = closedAt,
+        pullRequest = if (isPullRequest) PullRequestRef() else null
+    )
+}
+
+private fun PullRequest.toEntity(repoFullName: String): PullRequestEntity {
+    return PullRequestEntity(
+        repoFullName = repoFullName, id = id, number = number,
+        title = title, body = body, state = state,
+        userLogin = user?.login, userAvatarUrl = user?.avatarUrl,
+        createdAt = createdAt, updatedAt = updatedAt,
+        closedAt = closedAt, mergedAt = mergedAt,
+        htmlUrl = htmlUrl, headRef = head.ref, headSha = head.sha,
+        baseRef = base.ref, draft = draft
+    )
+}
+
+private fun PullRequestEntity.toDomain(): PullRequest {
+    return PullRequest(
+        id = id, number = number, title = title, body = body,
+        state = state, htmlUrl = htmlUrl,
+        user = userLogin?.let { User(id = 0, login = it, avatarUrl = userAvatarUrl ?: "") },
+        createdAt = createdAt, updatedAt = updatedAt,
+        closedAt = closedAt, mergedAt = mergedAt,
+        head = PRBranch(ref = headRef, sha = headSha),
+        base = PRBranch(ref = baseRef), draft = draft
+    )
+}
+
+private fun Release.toEntity(repoFullName: String): ReleaseEntity {
+    return ReleaseEntity(
+        repoFullName = repoFullName, id = id, tagName = tagName,
+        name = name, body = body, draft = draft, prerelease = prerelease,
+        createdAt = createdAt, publishedAt = publishedAt,
+        htmlUrl = htmlUrl, authorLogin = author?.login
+    )
+}
+
+private fun ReleaseEntity.toDomain(): Release {
+    return Release(
+        id = id, tagName = tagName, name = name, body = body,
+        draft = draft, prerelease = prerelease,
+        createdAt = createdAt, publishedAt = publishedAt,
         htmlUrl = htmlUrl,
-        bio = bio,
-        publicRepos = publicRepos,
-        publicGists = publicGists,
-        followers = followers,
-        following = following,
-        createdAt = createdAt
+        author = authorLogin?.let { User(id = 0, login = it) }
     )
 }

@@ -19,11 +19,19 @@ class GitHubRepositoryTest {
 
     private val userDao: UserDao = mockk()
 
+    private val commitDao: CommitDao = mockk()
+
+    private val issueDao: IssueDao = mockk()
+
+    private val pullRequestDao: PullRequestDao = mockk()
+
+    private val releaseDao: ReleaseDao = mockk()
+
     private lateinit var repository: GitHubRepository
 
     @Before
     fun setUp() {
-        repository = GitHubRepository(apiService, repoDao, userDao)
+        repository = GitHubRepository(apiService, repoDao, userDao, commitDao, issueDao, pullRequestDao, releaseDao)
     }
 
     @Test
@@ -235,20 +243,25 @@ class GitHubRepositoryTest {
     }
 
     @Test
-    fun `getCommits success`() = runTest {
+    fun `getCommits success caches commits`() = runTest {
         val commits = listOf(Commit(sha = "abc123", commit = CommitDetail(CommitAuthor("user", "e@e.com", "2024-01-01"), "fix: bug")))
         coEvery { apiService.getCommits("owner", "repo", sha = null, page = 1) } returns commits
+        coEvery { commitDao.deleteByRepo("owner/repo") } just Runs
+        coEvery { commitDao.insertAll(any()) } just Runs
 
         val result = repository.getCommits("owner", "repo", page = 1)
 
         assertTrue(result.isSuccess)
         assertEquals("abc123", result.getOrNull()?.first()?.sha)
+        coVerify { commitDao.insertAll(any()) }
     }
 
     @Test
     fun `getCommits with branch`() = runTest {
         val commits = listOf(Commit(sha = "def456"))
         coEvery { apiService.getCommits("owner", "repo", sha = "develop", page = 1) } returns commits
+        coEvery { commitDao.deleteByRepo("owner/repo") } just Runs
+        coEvery { commitDao.insertAll(any()) } just Runs
 
         val result = repository.getCommits("owner", "repo", branch = "develop", page = 1)
 
@@ -257,14 +270,17 @@ class GitHubRepositoryTest {
     }
 
     @Test
-    fun `getIssues success`() = runTest {
+    fun `getIssues success caches issues`() = runTest {
         val issues = listOf(Issue(id = 1, number = 1, title = "Bug", state = "open"))
         coEvery { apiService.getIssues("owner", "repo", "open", page = 1) } returns issues
+        coEvery { issueDao.deleteByRepo("owner/repo") } just Runs
+        coEvery { issueDao.insertAll(any()) } just Runs
 
         val result = repository.getIssues("owner", "repo", state = "open", page = 1)
 
         assertTrue(result.isSuccess)
         assertEquals(1, result.getOrNull()?.size)
+        coVerify { issueDao.insertAll(any()) }
     }
 
     @Test
@@ -279,14 +295,17 @@ class GitHubRepositoryTest {
     }
 
     @Test
-    fun `getPullRequests success`() = runTest {
+    fun `getPullRequests success caches PRs`() = runTest {
         val prs = listOf(PullRequest(id = 1, number = 1, title = "PR 1", state = "open"))
         coEvery { apiService.getPullRequests("owner", "repo", "open", page = 1) } returns prs
+        coEvery { pullRequestDao.deleteByRepo("owner/repo") } just Runs
+        coEvery { pullRequestDao.insertAll(any()) } just Runs
 
         val result = repository.getPullRequests("owner", "repo", state = "open", page = 1)
 
         assertTrue(result.isSuccess)
         assertEquals(1, result.getOrNull()?.size)
+        coVerify { pullRequestDao.insertAll(any()) }
     }
 
     @Test
@@ -534,25 +553,36 @@ class GitHubRepositoryTest {
     }
 
     @Test
-    fun `getReleases success`() = runTest {
+    fun `getReleases success caches releases`() = runTest {
         val releases = listOf(Release(id = 1, tagName = "v1.0.0", name = "First Release"))
         coEvery { apiService.getReleases("owner", "repo") } returns releases
+        coEvery { releaseDao.deleteByRepo("owner/repo") } just Runs
+        coEvery { releaseDao.insertAll(any()) } just Runs
 
         val result = repository.getReleases("owner", "repo")
 
         assertTrue(result.isSuccess)
         assertEquals("v1.0.0", result.getOrNull()?.first()?.tagName)
+        coVerify { releaseDao.insertAll(any()) }
     }
 
     @Test
-    fun `clearAllCache clears both DAOs`() = runTest {
+    fun `clearAllCache clears all DAOs`() = runTest {
         coEvery { repoDao.deleteAll() } just Runs
         coEvery { userDao.deleteAll() } just Runs
+        coEvery { commitDao.deleteAll() } just Runs
+        coEvery { issueDao.deleteAll() } just Runs
+        coEvery { pullRequestDao.deleteAll() } just Runs
+        coEvery { releaseDao.deleteAll() } just Runs
 
         repository.clearAllCache()
 
         coVerify { repoDao.deleteAll() }
         coVerify { userDao.deleteAll() }
+        coVerify { commitDao.deleteAll() }
+        coVerify { issueDao.deleteAll() }
+        coVerify { pullRequestDao.deleteAll() }
+        coVerify { releaseDao.deleteAll() }
     }
 
     @Test
@@ -989,6 +1019,115 @@ class GitHubRepositoryTest {
         coEvery { apiService.getWorkflowRunJobs("owner", "repo", 1L) } throws RuntimeException("Error")
 
         val result = repository.getWorkflowRunJobs("owner", "repo", 1L)
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `getCommitsFromCache returns cached commits`() = runTest {
+        val entities = listOf(
+            CommitEntity(repoFullName = "owner/repo", sha = "abc123",
+                authorName = "user", authorEmail = "e@e.com", authorDate = "2024-01-01",
+                message = "fix: bug", htmlUrl = "http://example.com")
+        )
+        coEvery { commitDao.getCommits("owner/repo") } returns entities
+
+        val result = repository.getCommitsFromCache("owner", "repo")
+
+        assertEquals(1, result.size)
+        assertEquals("abc123", result.first().sha)
+    }
+
+    @Test
+    fun `getIssuesFromCache returns cached issues`() = runTest {
+        val entities = listOf(
+            IssueEntity(repoFullName = "owner/repo", id = 1, number = 1,
+                title = "Bug", state = "open", isPullRequest = false)
+        )
+        coEvery { issueDao.getIssues("owner/repo", "open") } returns entities
+
+        val result = repository.getIssuesFromCache("owner", "repo", "open")
+
+        assertEquals(1, result.size)
+        assertEquals(1, result.first().number)
+        assertNull(result.first().pullRequest)
+    }
+
+    @Test
+    fun `getIssuesFromCache with all state queries all`() = runTest {
+        val entities = listOf(
+            IssueEntity(repoFullName = "owner/repo", id = 1, number = 1,
+                title = "Bug", state = "closed", isPullRequest = false)
+        )
+        coEvery { issueDao.getIssuesAll("owner/repo") } returns entities
+
+        val result = repository.getIssuesFromCache("owner", "repo", "all")
+
+        assertEquals(1, result.size)
+    }
+
+    @Test
+    fun `getPullRequestsFromCache returns cached PRs`() = runTest {
+        val entities = listOf(
+            PullRequestEntity(repoFullName = "owner/repo", id = 1, number = 1,
+                title = "PR 1", state = "open", headRef = "feature", baseRef = "main")
+        )
+        coEvery { pullRequestDao.getPullRequests("owner/repo", "open") } returns entities
+
+        val result = repository.getPullRequestsFromCache("owner", "repo", "open")
+
+        assertEquals(1, result.size)
+        assertEquals("feature", result.first().head.ref)
+    }
+
+    @Test
+    fun `getReleasesFromCache returns cached releases`() = runTest {
+        val entities = listOf(
+            ReleaseEntity(repoFullName = "owner/repo", id = 1, tagName = "v1.0.0",
+                name = "First Release")
+        )
+        coEvery { releaseDao.getReleases("owner/repo") } returns entities
+
+        val result = repository.getReleasesFromCache("owner", "repo")
+
+        assertEquals(1, result.size)
+        assertEquals("v1.0.0", result.first().tagName)
+    }
+
+    @Test
+    fun `getCommits does not cache on page 2`() = runTest {
+        val commits = listOf(Commit(sha = "abc123"))
+        coEvery { apiService.getCommits("owner", "repo", sha = null, page = 2) } returns commits
+
+        val result = repository.getCommits("owner", "repo", page = 2)
+
+        assertTrue(result.isSuccess)
+        coVerify(exactly = 0) { commitDao.insertAll(any()) }
+    }
+
+    @Test
+    fun `getIssuesFromCache failure returns empty list`() = runTest {
+        coEvery { issueDao.getIssues("owner/repo", "open") } throws RuntimeException("DB error")
+
+        val result = repository.getIssuesFromCache("owner", "repo", "open")
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `getPullRequestsFromCache failure returns empty list`() = runTest {
+        coEvery { pullRequestDao.getPullRequests("owner/repo", "open") } throws RuntimeException("DB error")
+
+        val result = repository.getPullRequestsFromCache("owner", "repo", "open")
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `markAllNotificationsRead failure`() = runTest {
+        coEvery { apiService.markAllNotificationsRead() } throws RuntimeException("Error")
+
+        val result = repository.markAllNotificationsRead()
 
         assertTrue(result.isFailure)
     }

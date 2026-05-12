@@ -21,7 +21,10 @@ object DatabaseModule {
             context,
             GitHubDatabase::class.java,
             "github_manager_db"
-        ).build()
+        )
+            .addMigrations(GitHubDatabase.MIGRATION_1_2)
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides
@@ -29,4 +32,16 @@ object DatabaseModule {
 
     @Provides
     fun provideUserDao(database: GitHubDatabase) = database.userDao()
+
+    @Provides
+    fun provideCommitDao(database: GitHubDatabase) = database.commitDao()
+
+    @Provides
+    fun provideIssueDao(database: GitHubDatabase) = database.issueDao()
+
+    @Provides
+    fun providePullRequestDao(database: GitHubDatabase) = database.pullRequestDao()
+
+    @Provides
+    fun provideReleaseDao(database: GitHubDatabase) = database.releaseDao()
 }
