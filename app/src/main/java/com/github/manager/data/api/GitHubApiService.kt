@@ -285,5 +285,5 @@ interface GitHubApiService {
         @Path("owner") owner: String,
         @Path("repo") repo: String,
         @Path("jobId") jobId: Long
-    ): retrofit2.ResponseBody
+    ): okhttp3.ResponseBody
 }

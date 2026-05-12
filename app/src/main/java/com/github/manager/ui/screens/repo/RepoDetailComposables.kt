@@ -634,13 +634,11 @@ fun FileContentDialog(
             } else if (decodedContent != null) {
                 LazyColumn(modifier = Modifier.heightIn(max = 500.dp)) {
                     item {
-                        SelectionArea {
-                            Text(
-                                decodedContent,
-                                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                                softWrap = true
-                            )
-                        }
+        Text(
+            decodedContent,
+            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+            softWrap = true
+        )
                     }
                 }
             } else if (fileContent?.downloadUrl != null) {
@@ -684,12 +682,10 @@ fun JobLogsDialog(
             } else if (logs != null) {
                 LazyColumn(modifier = Modifier.heightIn(max = 500.dp)) {
                     item {
-                        SelectionArea {
-                            Text(
-                                logs,
-                                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
-                            )
-                        }
+            Text(
+                logs,
+                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
+            )
                     }
                 }
             } else {

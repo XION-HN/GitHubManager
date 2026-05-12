@@ -101,7 +101,7 @@ fun UserProfileScreen(
                                 Text(getText(I18nStrings.viewOnGithub))
                             }
                         }
-                        HorizontalDivider()
+                        Divider()
                     }
 
                     item {
